@@ -1,5 +1,16 @@
 -- liquibase formatted sql
 
+CREATE ROLE myUser
+    CREATEDB
+LOGIN myUser
+PASSWORD 'password';
+
+CREATE DATABASE animal_shelter
+    WITH
+    OWNER = "myUser"
+    ENCODING = 'UTF8'
+
+
 --changeset artemiev:1
 
 
