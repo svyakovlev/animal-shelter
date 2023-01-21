@@ -1,35 +1,64 @@
 -- liquibase formatted sql
 
 --changeset artemiev:1
+CREATE TABLE client
+(
+    id                 SERIAL PRIMARY KEY,
+    name               VARCHAR(100),
+    volunteer          BOOLEAN,
+    volunteer_active   BOOLEAN,
+    administrator      BOOLEAN,
+    chat_id            BIGINT NOT NULL UNIQUE,
+    last_visit         TIMESTAMPTZ,
+    time_zone          VARCHAR(3)
+);
 
+CREATE TABLE contact
+(
+    id         SERIAL PRIMARY KEY,
+    type       INTEGER NOT NULL,
+    value      VARCHAR(100),
+    client_id    INTEGER REFERENCES client(id)
+);
+
+CREATE TABLE support
+(
+    id                   SERIAL PRIMARY KEY,
+    client_id_client     INTEGER REFERENCES client(id),
+    client_id_volunteer  INTEGER REFERENCES client(id),
+    type                 INTEGER NOT NULL,
+    datetime_begin       TIMESTAMPTZ,
+    datetime_finish      TIMESTAMPTZ,
+    finish               BOOLEAN
+);
 
 --changeset yakovlev:1
 CREATE TABLE probation
 (
-    id         SERIAL,
-    userId     INTEGER,
-    petId      INTEGER,
-    dateBegin  TIMESTAMPTZ,
-    dateFinish TIMESTAMPTZ,
-    success    BOOLEAN,
-    result     TEXT
+    id          SERIAL,
+    client_id   INTEGER,
+    pet_id      INTEGER,
+    date_begin  TIMESTAMPTZ,
+    date_finish TIMESTAMPTZ,
+    success     BOOLEAN,
+    result      TEXT
 );
 
-CREATE TABLE probationJournal
+CREATE TABLE probation_journal
 (
-    id             SERIAL,
-    probationId    INTEGER,
-    date           TIMESTAMPTZ,
-    photoReceived  BOOLEAN,
-    reportReceived BOOLEAN
+    id              SERIAL,
+    probation_id    INTEGER,
+    date            TIMESTAMPTZ,
+    photo_received  BOOLEAN,
+    report_received BOOLEAN
 );
 
-CREATE TABLE probationData
+CREATE TABLE probation_data
 (
-    id                 SERIAL,
-    probationJournalId INTEGER,
-    type               INTEGER,
-    link               TEXT
+    id                   SERIAL,
+    probation_journal_id INTEGER,
+    type                 INTEGER,
+    link                 TEXT
 );
 
 --changeset sirko:1
