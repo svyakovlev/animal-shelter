@@ -24,10 +24,10 @@ CREATE TABLE contact
 CREATE TABLE support
 (
     id                   SERIAL PRIMARY KEY,
-    client_id_client     INTEGER REFERENCES client(id),
+    client_id_client     INTEGER REFERENCES client(id) NOT NULL,
     client_id_volunteer  INTEGER REFERENCES client(id),
     type                 INTEGER NOT NULL,
-    datetime_begin       TIMESTAMPTZ,
+    datetime_begin       TIMESTAMPTZ NOT NULL ,
     datetime_finish      TIMESTAMPTZ,
     finish               BOOLEAN
 );
