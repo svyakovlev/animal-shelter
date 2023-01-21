@@ -3,14 +3,14 @@
 --changeset artemiev:1
 CREATE TABLE client
 (
-    id                 SERIAL PRIMARY KEY,
-    name               VARCHAR(100),
-    volunteer          BOOLEAN,
-    volunteer_active   BOOLEAN,
-    administrator      BOOLEAN,
-    chat_id            BIGINT NOT NULL UNIQUE,
-    last_visit         TIMESTAMPTZ,
-    time_zone          VARCHAR(3)
+    id                SERIAL PRIMARY KEY,
+    name              VARCHAR(100),
+    volunteer         BOOLEAN,
+    volunteer_active  BOOLEAN,
+    administrator     BOOLEAN,
+    chat_id           BIGINT NOT NULL UNIQUE,
+    last_visit        TIMESTAMPTZ,
+    time_zone         VARCHAR(3)
 );
 
 CREATE TABLE contact
