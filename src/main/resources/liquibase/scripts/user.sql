@@ -62,3 +62,21 @@ CREATE TABLE probation_data
 );
 
 --changeset sirko:1
+CREATE TABLE pet
+(
+    id       SERIAL PRIMARY KEY,
+    nickname VARCHAR(100),
+    breed VARCHAR(300),
+    age INTEGER,
+    character VARCHAR(300),
+    looking_for_owner BOOLEAN
+);
+
+CREATE TABLE photo_pets
+(
+    id SERIAL PRIMARY KEY,
+    pet_id INTEGER REFERENCES pet(id),
+    photo TEXT
+);
+
+

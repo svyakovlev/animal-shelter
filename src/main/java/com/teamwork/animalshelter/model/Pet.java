@@ -1,28 +1,40 @@
-package model;
+package com.teamwork.animalshelter.model;
 
 
 import java.util.Set;
 import javax.persistence.*;
 import java.util.Objects;
+
+/**
+ * этот класс хранит в себе все данные об питомцах
+ *
+ * @nicknameимя - имя питомца
+ * @breed - порода питомца
+ * @age - возраст(в месяцах)
+ * @character - характер
+ */
 @Entity
+@Table(name = "pet")
 public class Pet {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
     private String nickname;
     private String breed;
     private Integer age;
     private String character;
+    @Column(name = "looking_for_owner")
     private Boolean lookingForOwner;
 
 
-    @OneToMany(mappedBy = "pet")
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "pet")
     private Set<PhotoPets> photoPets;
 
-    public Pet() {
+    public Pet(Set<PhotoPets> photoPets) {
+
     }
 
-    public Pet(Long id, String nickname, String breed, Integer age, String character, Boolean lookingForOwner, PhotoPets photoPets) {
+    public Pet(Integer id, String nickname, String breed, Integer age, String character, Boolean lookingForOwner, PhotoPets photoPets) {
         this.id = id;
         this.nickname = nickname;
         this.breed = breed;
@@ -31,7 +43,7 @@ public class Pet {
         this.lookingForOwner = lookingForOwner;
     }
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 
@@ -99,8 +111,6 @@ public class Pet {
                 ", lookingForOwner=" + lookingForOwner +
                 '}';
     }
-
-
 
 
 }
