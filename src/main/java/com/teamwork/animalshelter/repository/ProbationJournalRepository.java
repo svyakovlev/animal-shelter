@@ -1,6 +1,6 @@
-package repository;
+package com.teamwork.animalshelter.repository;
 
-import model.ProbationJournal;
+import com.teamwork.animalshelter.model.ProbationJournal;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProbationJournalRepository extends JpaRepository<ProbationJournal, Integer> {
