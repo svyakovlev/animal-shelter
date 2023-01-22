@@ -1,4 +1,4 @@
-package repositories;
+package com.teamwork.animalshelter.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
