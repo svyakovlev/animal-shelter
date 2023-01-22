@@ -1,4 +1,4 @@
-package model;
+package com.teamwork.animalshelter.model;
 
 import javax.persistence.*;
 import java.util.Objects;

@@ -1,4 +1,4 @@
-package model;
+package com.teamwork.animalshelter.model;
 
 public enum ProbationDataType {
     PHOTO,
