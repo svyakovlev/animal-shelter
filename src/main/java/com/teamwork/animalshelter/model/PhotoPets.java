@@ -1,13 +1,23 @@
-package model;
+package com.teamwork.animalshelter.model;
 
 import javax.persistence.*;
 import java.util.Objects;
+
+/**
+ * класс содержит сылки на фотографии к каждому питомцу отдельно!
+ *
+ * @petId - номер питомца
+ * @photo - ссылка на фотографию
+ */
 @Entity
+@Table(name = "photo_pets")
 public class PhotoPets {
     @Id
-   private Long id;
-   private Long petId;
-   private String photo;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+    @Column(name = "pet_id")
+    private Integer petId;
+    private String photo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pet_id")
@@ -22,7 +32,7 @@ public class PhotoPets {
     }
 
 
-    public PhotoPets(Long id, Long petId, String photo) {
+    public PhotoPets(Integer id, Integer petId, String photo) {
         this.id = id;
         this.petId = petId;
         this.photo = photo;
@@ -33,16 +43,16 @@ public class PhotoPets {
 
     }
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 
 
-    public Long getPetId() {
+    public Integer getPetId() {
         return petId;
     }
 
-    public void setPetId(Long petId) {
+    public void setPetId(Integer petId) {
         this.petId = petId;
     }
 
