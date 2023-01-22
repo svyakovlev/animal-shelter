@@ -1,5 +1,7 @@
 package com.teamwork.animalshelter.model;
 
+import model.Pet;
+
 import javax.persistence.*;
 import java.util.Objects;
 
