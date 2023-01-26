@@ -97,8 +97,7 @@ public class User {
         this.chat_id = chat_id;
     }
 
-    public LocalDateTime getLastVisit() {
-        return lastVisit;
+    public LocalDateTime getLastVisit(Integer id) {return lastVisit;
     }
 
     public void setLastVisit(LocalDateTime lastVisit) {
