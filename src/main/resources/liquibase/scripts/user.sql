@@ -35,9 +35,9 @@ CREATE TABLE support
 --changeset yakovlev:1
 CREATE TABLE probation
 (
-    id          SERIAL,
-    client_id   INTEGER,
-    pet_id      INTEGER,
+    id          SERIAL PRIMARY KEY,
+    client_id   INTEGER REFERENCES client(id),
+    pet_id      INTEGER REFERENCES pet(id),
     date_begin  TIMESTAMPTZ,
     date_finish TIMESTAMPTZ,
     success     BOOLEAN,
@@ -47,7 +47,7 @@ CREATE TABLE probation
 CREATE TABLE probation_journal
 (
     id              SERIAL,
-    probation_id    INTEGER,
+    probation_id    INTEGER REFERENCES probation(id),
     date            TIMESTAMPTZ,
     photo_received  BOOLEAN,
     report_received BOOLEAN
@@ -55,8 +55,8 @@ CREATE TABLE probation_journal
 
 CREATE TABLE probation_data
 (
-    id                   SERIAL,
-    probation_journal_id INTEGER,
+    id                   SERIAL PRIMARY KEY,
+    probation_journal_id INTEGER REFERENCES probation_journal(id),
     type                 INTEGER,
     link                 TEXT
 );
