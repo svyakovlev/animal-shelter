@@ -20,6 +20,7 @@ public interface Askable {
     boolean verificationRequired();
     void setWaitingResponse(boolean waitingResponse);
     boolean getWaitingResponse();
-    String getError();
+    String getLastError();
     boolean intervalExceeded(int minutes);
+    String getName();
 }
