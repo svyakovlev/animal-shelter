@@ -182,7 +182,7 @@ public class Menu implements Askable{
     }
 
     @Override
-    public boolean getWaitingResponse() {
+    public boolean isWaitingResponse() {
         return this.waitingResponse;
    }
 

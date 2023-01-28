@@ -1,5 +1,6 @@
 package com.teamwork.animalshelter.service;
 
+import com.teamwork.animalshelter.model.ProbationDataType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -43,58 +44,56 @@ public class AnimalShetlerInfoService {
     @Value("${shetler.info.recommendations-home-for-handicapped-dog}")
     private String recommendationsHomeForHandicappedDog;
 
-    private  Map<String, Enum> parseResources(String resources) {
+    private  Map<String, ProbationDataType> parseResources(String resources) {
 
     }
 
-    public Map<String, Enum> getCommonInfo() {
+    public Map<String, ProbationDataType> getCommonInfo() {
 
     }
 
-    public Map<String, Enum> getContacts() {
+    public Map<String, ProbationDataType> getContacts() {
 
     }
 
-    public Map<String, Enum> getAccidentPrevention() {
+    public Map<String, ProbationDataType> getAccidentPrevention() {
 
     }
 
-    public Map<String, Enum> getPaperwork() {
+    public Map<String, ProbationDataType> getPaperwork() {
 
     }
 
-    public Map<String, Enum> getRulesOfFirstContact() {
+    public Map<String, ProbationDataType> getRulesOfFirstContact() {
 
     }
 
-    public Map<String, Enum> getTransportationAnimal() {
+    public Map<String, ProbationDataType> getTransportationAnimal() {
 
     }
 
-    public Map<String, Enum> getInitialHandlingWithAnimal() {
+    public Map<String, ProbationDataType> getInitialHandlingWithAnimal() {
 
     }
 
-    public Map<String, Enum> getCinologistsRecommendations() {
+    public Map<String, ProbationDataType> getCinologistsRecommendations() {
 
     }
 
-    public Map<String, Enum> getRefusingReasons() {
+    public Map<String, ProbationDataType> getRefusingReasons() {
 
     }
 
-    public Map<String, Enum> getRecommendationsHomeForPuppy() {
+    public Map<String, ProbationDataType> getRecommendationsHomeForPuppy() {
 
     }
 
-    public Map<String, Enum> getRecommendationsHomeForAdultDog() {
+    public Map<String, ProbationDataType> getRecommendationsHomeForAdultDog() {
 
     }
 
-    public Map<String, Enum> getRecommendationsHomeForHandicappedDog() {
+    public Map<String, ProbationDataType> getRecommendationsHomeForHandicappedDog() {
 
     }
-
-
 
 }

@@ -58,6 +58,19 @@ public class BotService {
         }
     }
 
+    /**
+     * Функция перенаправляет данные, получаемые из класса {@code AnimalShetlerInfoService}
+     * @param info карта записей, в которой ключом может быть либо передаваемый текст, либо путь к файлу
+     * @param chat_id идентификатор чата
+     * @see AnimalShetlerInfoService
+     * @see ProbationDataType
+     */
+    public void sendShetlerInfoByCommand(Map<String, ProbationDataType> info, long chat_id) {
+        for(Map.Entry entry : info.entrySet()) {
+            sendInfo(entry.getKey(), (ProbationDataType) entry.getValue(), chat_id);
+        }
+    }
+
     private void doAction(Askable ask,  long chatId, String s) {
         String action = ask.nextAction();
         if (action == null) return;
@@ -72,7 +85,7 @@ public class BotService {
         String s = "";
         ask.init();
         while (!ask.empty()) {
-            while (ask.getWaitingResponse()) {
+            while (ask.isWaitingResponse()) {
                 String response = askableServiceObjects.getResponse(chatId);
                 s = "";
                 if (response.isEmpty()) {

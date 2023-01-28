@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<Questionnaire name="data_user">
+    <Question label="name">
+        <Content>Введите свое имя</Content>
+        <Check>^([А-Яа-я ]{3,})$</Check>
+        <Hint>Использовать можно только русские буквы и пробел</Hint>
+    </Question>
+    <Question label="name">
+        <Content>Введите ваш телефон</Content>
+        <Check>^(7|(\+7))?9[\d]{9}$</Check>
+        <Hint>Номер сотового телефона должен содержать 10 цифр без пробелов (вначале могут находиться символы '+7' или '7'). </Hint>
+    </Question>
+</Questionnaire>
