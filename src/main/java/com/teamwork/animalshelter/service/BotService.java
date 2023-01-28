@@ -20,10 +20,12 @@ public class BotService {
     private final TelegramBot telegramBot;
     private final Logger logger = LoggerFactory.getLogger(BotService.class);
     private final AskableServiceObjects askableServiceObjects;
+    private final AnimalShetlerInfoService animalShetlerInfoService;
 
-    public BotService(TelegramBot telegramBot, AskableServiceObjects askableServiceObjects) {
+    public BotService(TelegramBot telegramBot, AskableServiceObjects askableServiceObjects, AnimalShetlerInfoService animalShetlerInfoService) {
         this.telegramBot = telegramBot;
         this.askableServiceObjects = askableServiceObjects;
+        this.animalShetlerInfoService = animalShetlerInfoService;
     }
 
     private void verifyResponse(SendResponse response, long chatId) {
@@ -61,13 +63,33 @@ public class BotService {
     /**
      * Функция перенаправляет данные, получаемые из класса {@code AnimalShetlerInfoService}
      * @param info карта записей, в которой ключом может быть либо передаваемый текст, либо путь к файлу
-     * @param chat_id идентификатор чата
+     * @param chatId идентификатор чата
      * @see AnimalShetlerInfoService
      * @see ProbationDataType
      */
-    public void sendShetlerInfoByCommand(Map<String, ProbationDataType> info, long chat_id) {
+    public void sendShetlerInfoByCommand(Map<String, ProbationDataType> info, long chatId) {
+        if(info == null) return;
         for(Map.Entry entry : info.entrySet()) {
-            sendInfo(entry.getKey(), (ProbationDataType) entry.getValue(), chat_id);
+            sendInfo(entry.getKey(), (ProbationDataType) entry.getValue(), chatId);
+        }
+    }
+
+    public void runCommands(String command, Long chatId) {
+        switch(command) {
+            case "common_info":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getCommonInfo(), chatId);
+                break;
+            case "contact_info":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getContacts(), chatId);
+                break;
+            case "accident_prevention_info":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getAccidentPrevention(), chatId);
+                break;
+            case "chat":
+                break;
+            case "phone_call":
+                break;
+
         }
     }
 
