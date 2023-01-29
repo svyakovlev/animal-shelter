@@ -93,4 +93,12 @@ public interface Askable {
      * @see AskableServiceObjects
      */
     String getName();
+
+    /**
+     * Создает полный дубликат объекта
+     * @return возвращает новый объект {@code Askable}
+     * @see Menu
+     * @see Questionnaire
+     */
+    Askable dublicate();
 }
