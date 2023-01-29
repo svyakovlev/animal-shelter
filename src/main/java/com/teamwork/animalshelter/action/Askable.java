@@ -42,11 +42,48 @@ public interface Askable {
      * @return результат проверки ответа пользователя.
      */
     boolean checkResponse(String response);
+
+    /**
+     * Возвращает результат в зависимости от реализации интерфейса
+     * @return {@code Map}
+     * <ul>
+     *     <li>{@code key} - метка</li>
+     *     <li>{@code value} - значение, зависящее от метки.</li>
+     * </ul>
+     * @see  Questionnaire
+     * @see  Menu
+     */
     Map<String, String> getResult();
+
+    /**
+     * Позволяет определить, требуется ли проверка ответа пользователя
+     * @return {@code true} если проверка ответа пользователя требуется
+     */
     boolean verificationRequired();
+
+    /**
+     * Устанавливает режим ожидания ответа от пользователя
+     * @param waitingResponse {@code true}, если режим ожидания ответа требуется включить, {@code false}, если режим ожидания ответа требуется выключить
+     */
     void setWaitingResponse(boolean waitingResponse);
+
+    /**
+     * Позволяет определить, включен ли режим ожидания ответа от пользователя
+     * @return {@code true} если включен
+     */
     boolean isWaitingResponse();
+
+    /**
+     * Возвращает расшифровку ошибки, которая произошла при последней проверке ответа пользователя
+     * @return расшифровка ошибки
+     */
     String getLastError();
+
+    /**
+     * Определяет, превышен ли интервал ожидания ответа от пользователя
+     * @param minutes количество минут, прошедших с начсла отправки очередного вопроса пользователю
+     * @return
+     */
     boolean intervalExceeded(int minutes);
 
     /**

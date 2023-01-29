@@ -52,6 +52,12 @@ public class BotService {
 
     }
 
+    /**
+     * Функция разделяет способы передачи данных. Является общей функцией для отправки информации в чат.
+     * @param object отправляемые данные
+     * @param type тип отправляемой информации
+     * @param chatId идентификатор чата
+     */
     public void sendInfo(Object object, ProbationDataType type, long chatId) {
         switch (type) {
             case TEXT -> sendTextInfo(object, chatId);
@@ -74,6 +80,11 @@ public class BotService {
         }
     }
 
+    /**
+     * Осуществляется вызов необходимой функции в зависимости от строкового идентификатора команды.
+     * @param command идентификатор команды
+     * @param chatId идентификатор чата
+     */
     public void runCommands(String command, Long chatId) {
         switch(command) {
             case "common_info":
@@ -93,6 +104,15 @@ public class BotService {
         }
     }
 
+    /**
+     * Функция выполняет переход к следующему вопросу или пукту меню и отправляет вопрос
+     * или дочерние пункты меню пользователя для выбора. Также запускается режим ожидания
+     * ответа от пользователя.
+     * @param ask объект, реализующий интерфейс {@code Askable}
+     * @param chatId идентификатор чата
+     * @param s данная строка добавляется в самое начало сообщения, отправляемого пользователю
+     * @see Askable
+     */
     private void doAction(Askable ask,  long chatId, String s) {
         String action = ask.nextAction();
         if (action == null) return;
@@ -102,6 +122,20 @@ public class BotService {
         sendInfo(info, ProbationDataType.TEXT, chatId);
     }
 
+    /**
+     * Функция запускает работу опросника или меню
+     * @param ask объект, реализующий интерфейс {@code Askable}
+     * @param chatId идентификатор чата
+     * @return Map , где key - это строковая метка, value - строковое значение (для опросника является
+     * ответом пользователя на вопрос с меткой, указанной в {@code key})
+     * Возможные значения key:
+     * <ul>
+     *     <li>{@code command} - в value находится строковая метка команды, которая используется в функции {@link #runCommands(String, Long)} </li>
+     *     <li>{@code interrupt} - value не используется</li>
+     *     <li>{@code <строковая метка>} - метка используется, чтобы определить </li>
+     * </ul>
+     * @throws InterruptedException
+     */
     private Map<String, String> startAction(Askable ask, long chatId) throws InterruptedException {
         LocalDateTime startTime = LocalDateTime.now();
         String s = "";

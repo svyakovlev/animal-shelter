@@ -4,7 +4,23 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.teamwork.animalshelter.parser.ParserXML;
 
+/**
+ * Класс определяет работу меню
+ * <br>
+ * <ul>
+ * Данные класса:
+ * <br>
+ * <li>{@code itemMenu} - текущий элемент меню;</li>
+ * <li>{@code error} - ошибка, возникшая при проверке последнего ответа пользователя;</li>
+ * <li>{@code name} - название меню;</li>
+ * <li>{@code interval} - задаваемый интервал ожидания (в минутах) ответа от пользователя. При превышении этого интервала происходит сброс команды;</li>
+ * <li>{@code waitingResponse} - {@code true}, если режим ожидания включен;</li>
+ * </ul>
+ * @see Askable
+ * @see ParserXML
+ */
 public class Menu implements Askable{
     private ItemMenu itemMenu;
     private String error;
@@ -20,6 +36,21 @@ public class Menu implements Askable{
         this.waitingResponse = false;
     }
 
+    /**
+     * Класс определяет отдельный пункт меню
+     * <br>
+     * <ul>
+     * Данные класса:
+     * <br>
+     * <li>{@code label} - метка пункта меню. Анализируется в ответе пользователя;</li>
+     * <li>{@code name} - название пункта меню;</li>
+     * <li>{@code parent} - родительский пункт меню;</li>
+     * <li>{@code childs} - дочерние пункты меню;</li>
+     * <li>{@code command} - {@code true}, если данный пункт меню является командой;</li>
+     * <li>{@code commandName} - название команды (имеет смысл, если {@code command} установлена в {@code true} ;</li>
+     * </ul>
+     * @see Menu
+     */
     class ItemMenu {
         private String label;
         private String name;
@@ -191,10 +222,20 @@ public class Menu implements Askable{
         return minutes > getInterval();
     }
 
+    /**
+     * Создает новый объект {@code Menu} из файла XML
+     * @param filePath путь к файлу
+     * @return {@code Menu} возвращает новый объект
+     * @see ParserXML
+     */
     public static Menu load(String filePath) {
 
     }
 
+    /**
+     * Создает полную копию текущего объекта {@code Menu}
+     * @return {@code Menu} возвращает новый объект
+     */
     public Menu dublicate() {
 
     }

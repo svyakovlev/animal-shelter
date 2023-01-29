@@ -1,8 +1,17 @@
 package com.teamwork.animalshelter.action;
 
+import com.teamwork.animalshelter.configuration.TelegramBotConfiguration;
+import com.teamwork.animalshelter.service.BotService;
+
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Класс определяет набор служебных структур, используемых при диалоге с пользователем.
+ * Бин этого класса инжектится в объект класса {@link BotService}.
+ * @see TelegramBotConfiguration
+ * @see BotService
+ */
 public class AskableServiceObjects {
 
     /**
@@ -14,7 +23,26 @@ public class AskableServiceObjects {
      */
     private Map<Long, String> waitingResponses;
 
+    /**
+     * Вспомогательная структура.
+     * Служит для кэширования шаблонов объектов, создаваемых при запуске приложения из файлов xml.
+     * <ul>
+     * <li> key: метка шаблона (метка берется из файла xml)</li>
+     * <li> value: объект, реализующий интерфейс {@code Askable}</li></ul>
+     * @see Askable
+     */
     private Map<String, Askable> cacheTemplates;
+
+    /**
+     * Вспомогательная структура.
+     * Служит для кэширования объектов в разрезе пользователей чата.
+     * <br><br>При запросе требуемого объекта вначале будет делаться попытка получить из кэша объектов.
+     * Если его еще нет в кэше, то будет создан новый объект по шаблону из {@link #cacheTemplates}.
+     * <ul>
+     * <li> key: идентификатор чата</li>
+     * <li> value: объект, создаваемый по шаблону из набора шаблонов {@link #cacheTemplates}</li></ul>
+     * @see Askable
+     */
     private Map<Long, Map<String, Askable>> cacheObjects;
 
     public AskableServiceObjects() {

@@ -11,6 +11,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * Класс служит для парсинга произвольных файлов XML. Позволяет создать объектную модель файла XML.
+ */
 public class ParserXML {
     private final SAXParser parser;
     private final ParserHandler handler;
@@ -27,7 +30,13 @@ public class ParserXML {
         }
     }
 
-    Element parse(String filePath) {
+    /**
+     * Запускает парсинг файла XML.
+     * @param filePath путь к файлу
+     * @return {@code Element} корневой элемент спарсенного файла XML
+     * @see Element
+     */
+    public Element parse(String filePath) {
         File file = new File(filePath);
         try {
             parser.parse(file, handler);
@@ -39,10 +48,17 @@ public class ParserXML {
         return handler.getRootElement();
     }
 
+    /**
+     * Вспомогательный класс для класса {@link ParserXML}
+     * <br> Определяет обработчики событийной модели из библиотеки  {@code org.xml.sax},
+     * c помощью которых строится объектная модель файла XML.
+     * @see ParserXML
+     * @see Element
+     */
     class ParserHandler extends DefaultHandler {
         private Element root;
         private Element currentElement;
-        List<Element> stackElements;
+        LinkedList<Element> stackElements;
 
         public ParserHandler() {
             this.stackElements = new LinkedList<Element>();
@@ -54,7 +70,15 @@ public class ParserXML {
 
         @Override
         public void startElement(String uri, String localName, String qName, Attributes attributes) {
-
+            Element elem = new Element(qName, currentElement);
+            for (int i = 0; i < attributes.getLength(); i++) {
+                elem.addAttribute(attributes.getQName(i), attributes.getValue(i));
+            }
+            if (currentElement != null) {
+                stackElements.push(currentElement);
+                currentElement.addChild(elem);
+            }
+            currentElement = elem;
         }
 
         @Override

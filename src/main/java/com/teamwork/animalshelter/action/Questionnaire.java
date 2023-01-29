@@ -1,7 +1,31 @@
 package com.teamwork.animalshelter.action;
 
+import com.teamwork.animalshelter.parser.ParserXML;
+
 import java.util.*;
 
+/**
+ * Класс определяет работу опросника (процедуры, характеризующейся отправкой вопроса пользователю,
+ * ожиданием ответа на этот вопрос и обработкой этого ответа).
+ * <br>
+ * <ul>
+ * Данные класса:
+ * <br>
+ * <li>{@code questions} - коллекция вопросов. Вопрос описывается классом {@link Node};</li>
+ * <li>{@code answers} - содержит ответы пользователя. Ключом выступает метка вопроса {@code label} из класса {@code Node};</li>
+ * <li>{@code checks} - содержит регулярные выражения для проверки ответов пользователя. Ключом выступает метка вопроса {@code label} из класса {@code Node};</li>
+ * <li>{@code hints} - содержит подсказки для правильного ответа на вопрос. Ключом выступает метка вопроса {@code label} из класса {@code Node};</li>
+ * <li>{@code listIterator} - текущий итератор (для перемещения по списку вопросов);</li>
+ * <li>{@code currentQuestion} - текущий вопрос;</li>
+ * <li>{@code name} - название опросника;</li>
+ * <li>{@code error} - ошибка, возникшая при проверке последнего ответа пользователя;</li>
+ * <li>{@code interval} - задаваемый интервал ожидания (в минутах) ответа от пользователя. При превышении этого интервала происходит сброс команды;</li>
+ * <li>{@code waitingResponse} - {@code true}, если режим ожидания включен;</li>
+ * </ul>
+ * @see Askable
+ * @see ParserXML
+ * @see Node
+ */
 public class Questionnaire implements Askable{
     private List<Node> questions;
     private Map<String, String> answers;
@@ -13,6 +37,18 @@ public class Questionnaire implements Askable{
     private String error;
     private int interval;
     private boolean waitingResponse;
+
+    /**
+     * Класс определяет структуру вопроса
+     * <br>
+     * <ul>
+     * Данные класса:
+     * <br>
+     * <li>{@code label} - метка вопроса;</li>
+     * <li>{@code question} - описание вопроса;</li>
+     * </ul>
+     * @see Questionnaire
+     */
     class Node {
         private String label;
         private String question;
@@ -50,10 +86,20 @@ public class Questionnaire implements Askable{
         this.hints = new HashMap<>();
     }
 
+    /**
+     * Создает новый объект {@code Questionnaire} из файла XML
+     * @param filePath путь к файлу
+     * @return {@code Questionnaire} возвращает новый объект
+     * @see ParserXML
+     */
     public static Questionnaire load(String filePath) {
 
     }
 
+    /**
+     * Создает полную копию текущего объекта {@code Questionnaire}
+     * @return {@code Questionnaire} возвращает новый объект
+     */
     public Questionnaire dublicate() {
 
     }
