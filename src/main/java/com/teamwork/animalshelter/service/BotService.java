@@ -5,6 +5,7 @@ import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.response.SendResponse;
 import com.teamwork.animalshelter.action.Askable;
 import com.teamwork.animalshelter.action.AskableServiceObjects;
+import com.teamwork.animalshelter.exception.AskableNullPointer;
 import com.teamwork.animalshelter.model.ProbationDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,7 +125,7 @@ public class BotService {
 
     /**
      * Функция запускает работу опросника или меню
-     * @param ask объект, реализующий интерфейс {@code Askable}
+     * @param name название объекта, реализующего интерфейс {@code Askable}
      * @param chatId идентификатор чата
      * @return Map , где key - это строковая метка, value - строковое значение (для опросника является
      * ответом пользователя на вопрос с меткой, указанной в {@code key})
@@ -136,7 +137,10 @@ public class BotService {
      * </ul>
      * @throws InterruptedException
      */
-    private Map<String, String> startAction(Askable ask, long chatId) throws InterruptedException {
+    private Map<String, String> startAction(String name, long chatId) throws InterruptedException {
+        Askable ask = askableServiceObjects.getObject(name, chatId);
+        if (ask == null) throw new AskableNullPointer(name);
+
         LocalDateTime startTime = LocalDateTime.now();
         String s = "";
         ask.init();

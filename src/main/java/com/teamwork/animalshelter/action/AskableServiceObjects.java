@@ -1,6 +1,7 @@
 package com.teamwork.animalshelter.action;
 
 import com.teamwork.animalshelter.configuration.TelegramBotConfiguration;
+import com.teamwork.animalshelter.exception.TemplateNotExist;
 import com.teamwork.animalshelter.service.BotService;
 
 import java.util.HashMap;
@@ -75,7 +76,7 @@ public class AskableServiceObjects {
         cacheTemplates.remove(name);
     }
 
-    public  void addObject(Long chatId, String name, Askable ask) {
+    private void addObject(Long chatId, String name, Askable ask) {
         Map<String, Askable> map;
         if (cacheObjects.containsKey(chatId)) {
             map = cacheObjects.get(chatId);
@@ -84,5 +85,28 @@ public class AskableServiceObjects {
             cacheObjects.put(chatId, map);
         }
         map.put(name, ask);
+    }
+
+    /**
+     * Функция возвращает объект {@code Askable} по заданному имени
+     * @param name название шаблона объекта {@code Askable}
+     * @param chatId идентификатор чата
+     * @return возвращает объект {@code Askable}
+     * @throws TemplateNotExist вызывается, если шаблон с таким названием не существует
+     * @see Askable
+     */
+    public Askable getObject(String name, long chatId) {
+        Askable ask = null;
+        if (cacheObjects.containsKey(chatId)) {
+            Map<String, Askable> map = cacheObjects.get(chatId);
+            ask = map.get(name);
+            if (ask != null) return ask;
+        }
+        if (!cacheTemplates.containsKey(name)) {
+            throw new TemplateNotExist(name);
+        }
+        ask = cacheTemplates.get(name).dublicate();
+        addObject(chatId, name, ask);
+        return ask;
     }
 }
