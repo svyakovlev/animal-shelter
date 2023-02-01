@@ -1,5 +1,7 @@
 package com.teamwork.animalshelter.parser;
 
+import com.teamwork.animalshelter.exception.ErrorElementXmlFile;
+import com.teamwork.animalshelter.exception.WrongFormatXmlFile;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -41,7 +43,7 @@ public class ParserXML {
         try {
             parser.parse(file, handler);
         } catch (SAXException e) {
-            throw new RuntimeException(e);
+            throw new WrongFormatXmlFile(filePath);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -83,12 +85,25 @@ public class ParserXML {
 
         @Override
         public void endElement(String uri, String localName, String qName) {
-
+            if (currentElement == null) {
+                throw new ErrorElementXmlFile(qName, "");
+            }
+            if (!qName.equals(currentElement.getName())) {
+                throw new ErrorElementXmlFile(qName, currentElement.getName());
+            }
+            try {
+                currentElement = stackElements.pop();
+            } catch (NoSuchElementException e) {
+                throw new ErrorElementXmlFile(currentElement.getName());
+            }
         }
 
         @Override
         public void characters (char ch[], int start, int length) {
-
+            if (currentElement == null) {
+                throw new ErrorElementXmlFile(ch, start, length);
+            }
+            currentElement.setText(String.valueOf(ch, start, length));
         }
     }
 }
