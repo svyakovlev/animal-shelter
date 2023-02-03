@@ -38,12 +38,11 @@ public class ParserXML {
      * @return {@code Element} корневой элемент спарсенного файла XML
      * @see Element
      */
-    public Element parse(String filePath) {
-        File file = new File(filePath);
+    public Element parse(File file) {
         try {
             parser.parse(file, handler);
         } catch (SAXException e) {
-            throw new WrongFormatXmlFile(filePath);
+            throw new WrongFormatXmlFile(file.getPath());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

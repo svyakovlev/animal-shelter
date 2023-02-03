@@ -1,5 +1,6 @@
 package com.teamwork.animalshelter.action;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -239,12 +240,12 @@ public class Menu implements Askable{
     /**
      * Создает новый объект {@code Menu} из файла XML
      * @param parserXML объект, с помощью которого будет производится парсинг XML
-     * @param filePath путь к файлу
+     * @param file файловый объект
      * @return {@code Menu} возвращает новый объект
      * @see ParserXML
      */
-    public static Menu load(ParserXML parserXML, String filePath) {
-        Element root = parserXML.parse(filePath);
+    public static Menu load(ParserXML parserXML, File file) {
+        Element root = parserXML.parse(file);
 
         String intervalString = root.getAttributes().get("interval");
         if (intervalString == null) {

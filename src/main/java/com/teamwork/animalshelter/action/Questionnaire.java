@@ -5,6 +5,7 @@ import com.teamwork.animalshelter.exception.NotFoundAttributeXmlFile;
 import com.teamwork.animalshelter.parser.Element;
 import com.teamwork.animalshelter.parser.ParserXML;
 
+import java.io.File;
 import java.util.*;
 
 /**
@@ -101,12 +102,12 @@ public class Questionnaire implements Askable{
 
     /**
      * Создает новый объект {@code Questionnaire} из файла XML
-     * @param filePath путь к файлу
+     * @param file файловый объект
      * @return {@code Questionnaire} возвращает новый объект
      * @see ParserXML
      */
-    public static Questionnaire load(ParserXML parserXML, String filePath) {
-        Element root = parserXML.parse(filePath);
+    public static Questionnaire load(ParserXML parserXML, File file) {
+        Element root = parserXML.parse(file);
 
         if (!root.getName().equals("Questionnaire")) {
             throw new ErrorQuestionnaire("", String.format("'%s' - неверное имя элемента", root.getName()));

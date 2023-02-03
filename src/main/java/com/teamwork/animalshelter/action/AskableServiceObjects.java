@@ -1,6 +1,7 @@
 package com.teamwork.animalshelter.action;
 
 import com.teamwork.animalshelter.configuration.TelegramBotConfiguration;
+import com.teamwork.animalshelter.exception.TemplateAlreadyExist;
 import com.teamwork.animalshelter.exception.TemplateNotExist;
 import com.teamwork.animalshelter.service.BotService;
 
@@ -69,6 +70,9 @@ public class AskableServiceObjects {
     }
 
     public  void addTemplate(String name, Askable ask) {
+        if (cacheTemplates.containsKey(name)) {
+            throw new TemplateAlreadyExist(name);
+        }
         cacheTemplates.put(name, ask);
     }
 
