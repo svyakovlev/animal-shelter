@@ -1,5 +1,8 @@
 package com.teamwork.animalshelter.action;
 
+import com.teamwork.animalshelter.exception.ErrorQuestionnaire;
+import com.teamwork.animalshelter.exception.NotFoundAttributeXmlFile;
+import com.teamwork.animalshelter.parser.Element;
 import com.teamwork.animalshelter.parser.ParserXML;
 
 import java.util.*;
@@ -73,6 +76,11 @@ public class Questionnaire implements Askable{
         public void setQuestion(String question) {
             this.question = question;
         }
+
+        public Node clone() {
+            Node node = new Node(this.getLabel(), this.getQuestion());
+            return node;
+        }
     }
 
     private Questionnaire(String name, int interval) {
@@ -86,14 +94,79 @@ public class Questionnaire implements Askable{
         this.hints = new HashMap<>();
     }
 
+    private Node addNode(String label, String question) {
+        Node node = new Node(label, question);
+        return node;
+    }
+
     /**
      * Создает новый объект {@code Questionnaire} из файла XML
      * @param filePath путь к файлу
      * @return {@code Questionnaire} возвращает новый объект
      * @see ParserXML
      */
-    public static Questionnaire load(String filePath) {
+    public static Questionnaire load(ParserXML parserXML, String filePath) {
+        Element root = parserXML.parse(filePath);
 
+        if (!root.getName().equals("Questionnaire")) {
+            throw new ErrorQuestionnaire("", String.format("'%s' - неверное имя элемента", root.getName()));
+        }
+
+        String intervalString = root.getAttributes().get("interval");
+        if (intervalString == null) {
+            throw new NotFoundAttributeXmlFile(root.getName(), "interval");
+        }
+
+        String name = root.getAttributes().get("name");
+        if (name == null) {
+            throw new NotFoundAttributeXmlFile(root.getName(), "name");
+        }
+
+        Questionnaire questionnaire;
+        try {
+            questionnaire = new Questionnaire(name, Integer.valueOf(intervalString));
+        } catch (NumberFormatException e) {
+            throw new ErrorQuestionnaire(name, "Ошибка в указании интервала");
+        } catch (Exception e) {
+            throw new ErrorQuestionnaire(name, "Ошибка при создании опросника. " + e.getMessage());
+        }
+
+        List<Element> childs = root.getChilds();
+        String label;
+
+        for (int i=0; i < childs.size(); i++) {
+            Element elementQuestion = childs.get(i);
+            if (!elementQuestion.getName().equals("Question")) {
+                throw new ErrorQuestionnaire(name, String.format("'%s' - Неверное имя элемента. Ожидается элемент 'Question'", elementQuestion.getName()));
+            }
+            label = elementQuestion.getAttributes().get("label");
+            if (label == null) {
+                throw new ErrorQuestionnaire(name, String.format("Не найден атрибут 'label'", elementQuestion.getName()));
+            }
+
+            List<Element> questionSections = elementQuestion.getChilds();
+            boolean contentExists = false;
+            for (int j=0; j < questionSections.size(); j++) {
+                Element section = questionSections.get(j);
+                switch (section.getName()) {
+                    case "Content":
+                        contentExists = true;
+                        Node node = questionnaire.addNode(label, section.getText());
+                        questionnaire.addQuestion(node);
+                        break;
+                    case "Check":
+                        questionnaire.addCheck(label, section.getText());
+                    case "Hint":
+                        questionnaire.addHint(label, section.getText());
+                    default:
+                        throw new ErrorQuestionnaire(name, String.format("'%s' - Неверное имя элемента.", section.getName()));
+                }
+            }
+            if (!contentExists) {
+                throw new ErrorQuestionnaire(name, String.format("Элемент 'Content' не был найден для метки '%s'", label));
+            }
+        }
+        return questionnaire;
     }
 
     /**
@@ -101,7 +174,30 @@ public class Questionnaire implements Askable{
      * @return {@code Questionnaire} возвращает новый объект
      */
     public Questionnaire dublicate() {
+        Questionnaire questionnaire = new Questionnaire(this.getName(), this.getInterval());
+        questionnaire.checks.putAll(this.checks);
+        questionnaire.hints.putAll(this.hints);
+        if (this.questions.isEmpty()) {
+            throw new ErrorQuestionnaire(this.getName(), String.format("В опроснике не найдено вопросов"));
+        }
+        ListIterator<Questionnaire.Node> iterator = this.questions.listIterator(0);
+        while (iterator.hasNext()) {
+            Node node = iterator.next();
+            questionnaire.questions.add(node.clone());
+        }
+        return questionnaire;
+    }
 
+    private void addQuestion(Node node) {
+        questions.add(node);
+    }
+
+    private void addCheck(String key, String value) {
+        checks.put(key, value);
+    }
+
+    private void addHint(String key, String value) {
+        hints.put(key, value);
     }
 
     public int getInterval() {
@@ -119,6 +215,7 @@ public class Questionnaire implements Askable{
     @Override
     public void init() {
         setError("");
+        setWaitingResponse(false);
         listIterator = questions.listIterator(0);
         currentQuestion = questions.get(0);
 
@@ -143,10 +240,6 @@ public class Questionnaire implements Askable{
     @Override
     public void setResponse(String response) {
         String currentLabel = currentQuestion.getLabel();
-        if (!answers.containsKey(currentLabel)) {
-            // исключение
-            // не найден ключ для записи ответа пользователя
-        }
         answers.put(currentLabel, response);
         if (listIterator.hasNext()) currentQuestion = listIterator.next();
     }

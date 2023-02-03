@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<Menu name="menu_info">
+<Menu name="menu_info" interval="5">
     <ItemMenu label="1" name="Получить информацию о приюте" command="common_info"/>
     <ItemMenu label="2" name="Расписание работы и контактная информация" command="contact_info"/>
     <ItemMenu label="3" name="Рекомендации по технике безопасности на территории приюта" command="accident_prevention_info"/>
