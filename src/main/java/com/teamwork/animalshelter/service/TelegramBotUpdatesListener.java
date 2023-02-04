@@ -26,7 +26,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         updates.forEach(update -> {
 
             switch (update.message().text()) {
-
+// код
             }
 
         });

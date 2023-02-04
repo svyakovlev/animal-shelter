@@ -55,8 +55,9 @@ public class BotService {
 
     /**
      * Функция разделяет способы передачи данных. Является общей функцией для отправки информации в чат.
+     *
      * @param object отправляемые данные
-     * @param type тип отправляемой информации
+     * @param type   тип отправляемой информации
      * @param chatId идентификатор чата
      */
     public void sendInfo(Object object, ProbationDataType type, long chatId) {
@@ -69,25 +70,27 @@ public class BotService {
 
     /**
      * Функция перенаправляет данные, получаемые из класса {@code AnimalShetlerInfoService}
-     * @param info карта записей, в которой ключом может быть либо передаваемый текст, либо путь к файлу
+     *
+     * @param info   карта записей, в которой ключом может быть либо передаваемый текст, либо путь к файлу
      * @param chatId идентификатор чата
      * @see AnimalShetlerInfoService
      * @see ProbationDataType
      */
     public void sendShetlerInfoByCommand(Map<String, ProbationDataType> info, long chatId) {
-        if(info == null) return;
-        for(Map.Entry entry : info.entrySet()) {
+        if (info == null) return;
+        for (Map.Entry entry : info.entrySet()) {
             sendInfo(entry.getKey(), (ProbationDataType) entry.getValue(), chatId);
         }
     }
 
     /**
      * Осуществляется вызов необходимой функции в зависимости от строкового идентификатора команды.
+     *
      * @param command идентификатор команды
-     * @param chatId идентификатор чата
+     * @param chatId  идентификатор чата
      */
     public void runCommands(String command, Long chatId) {
-        switch(command) {
+        switch (command) {
             case "common_info":
                 sendShetlerInfoByCommand(animalShetlerInfoService.getCommonInfo(), chatId);
                 break;
@@ -109,12 +112,13 @@ public class BotService {
      * Функция выполняет переход к следующему вопросу или пукту меню и отправляет вопрос
      * или дочерние пункты меню пользователя для выбора. Также запускается режим ожидания
      * ответа от пользователя.
-     * @param ask объект, реализующий интерфейс {@code Askable}
+     *
+     * @param ask    объект, реализующий интерфейс {@code Askable}
      * @param chatId идентификатор чата
-     * @param s данная строка добавляется в самое начало сообщения, отправляемого пользователю
+     * @param s      данная строка добавляется в самое начало сообщения, отправляемого пользователю
      * @see Askable
      */
-    private void doAction(Askable ask,  long chatId, String s) {
+    private void doAction(Askable ask, long chatId, String s) {
         String action = ask.nextAction();
         if (action == null) return;
         askableServiceObjects.addResponse(chatId, "");
@@ -125,7 +129,8 @@ public class BotService {
 
     /**
      * Функция запускает работу опросника или меню
-     * @param name название объекта, реализующего интерфейс {@code Askable}
+     *
+     * @param name   название объекта, реализующего интерфейс {@code Askable}
      * @param chatId идентификатор чата
      * @return Map , где key - это строковая метка, value - строковое значение (для опросника является
      * ответом пользователя на вопрос с меткой, указанной в {@code key})
@@ -137,7 +142,7 @@ public class BotService {
      * </ul>
      * @throws InterruptedException
      */
-    private Map<String, String> startAction(String name, long chatId) throws InterruptedException {
+    Map<String, String> startAction(String name, long chatId) throws InterruptedException {
         Askable ask = askableServiceObjects.getObject(name, chatId);
         if (ask == null) throw new AskableNullPointer(name);
 
@@ -154,7 +159,7 @@ public class BotService {
                         ask.setWaitingResponse(false);
                         askableServiceObjects.removeResponse(chatId);
                         Map<String, String> result = new HashMap<>();
-                        result.put("interrupt_time", "");
+                        result.put("interrupt", "");
                         return result;
                     }
                     Thread.sleep(10_000);
@@ -165,7 +170,7 @@ public class BotService {
                         s = "Можете выбрать другую команду.";
                         sendInfo(s, ProbationDataType.TEXT, chatId);
                         Map<String, String> result = new HashMap<>();
-                        result.put("interrupt_user", "");
+                        result.put("interrupt", "");
                         return result;
                     }
                     if (ask.verificationRequired() && !ask.checkResponse(response)) {
@@ -182,4 +187,7 @@ public class BotService {
         return ask.getResult();
     }
 
+    public void createChat(long userChatId, long adminChatId) {
+
+    }
 }
