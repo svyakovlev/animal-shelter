@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<Questionnaire name="data_user">
+<Questionnaire name="data_user" interval="5">
     <Question label="name">
         <Content>Введите свое имя</Content>
         <Check>^([А-Яа-я ]{3,})$</Check>

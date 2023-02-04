@@ -93,7 +93,7 @@ public class Questionnaire implements Askable{
      * @see ParserXML
      */
     public static Questionnaire load(String filePath) {
-
+        return null;
     }
 
     /**
@@ -101,7 +101,7 @@ public class Questionnaire implements Askable{
      * @return {@code Questionnaire} возвращает новый объект
      */
     public Questionnaire dublicate() {
-
+        return null;
     }
 
     public int getInterval() {

@@ -229,7 +229,7 @@ public class Menu implements Askable{
      * @see ParserXML
      */
     public static Menu load(String filePath) {
-
+        return null;
     }
 
     /**
@@ -237,6 +237,6 @@ public class Menu implements Askable{
      * @return {@code Menu} возвращает новый объект
      */
     public Menu dublicate() {
-
+        return null;
     }
 }
