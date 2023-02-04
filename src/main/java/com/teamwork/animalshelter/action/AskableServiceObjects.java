@@ -1,5 +1,6 @@
 package com.teamwork.animalshelter.action;
 
+import com.teamwork.animalshelter.concurrent.ShetlerThread;
 import com.teamwork.animalshelter.configuration.TelegramBotConfiguration;
 import com.teamwork.animalshelter.exception.TemplateAlreadyExist;
 import com.teamwork.animalshelter.exception.TemplateNotExist;
@@ -19,6 +20,7 @@ public class AskableServiceObjects {
     /**
      * Вспомогательная структура.
      * Служит для записи ответов пользователей на заданные им вопросы.
+     * Используется в алгоритме опросника.
      * <ul>
      * <li> key: идентификатор чата пользователя</li>
      * <li> value: полученный ответ пользователя</li></ul>
@@ -47,17 +49,40 @@ public class AskableServiceObjects {
      */
     private Map<Long, Map<String, Askable>> cacheObjects;
 
+    /**
+     * Вспомогательная структура.
+     * Требуется для работы с одновременными запросами сотрудникам, кто из них готов взять клиента в работу.
+     * В эту структуру данных приходит ответ сотрудника.
+     * <ul>
+     * <li> key: идентификатор чата пользователя</li>
+     * <li> value: {@code Map}, где ключом является идентификатор чата сотрудника, а значением
+     * - булево значение, где {@code true} означает, что сотрудник дал положительный ответ. Ответ будет
+     * считаться положительным, если сотрудник отправит специальную команду {@code '/+'.}</li></ul>
+     */
+    private Map<Long, Map<Long, Boolean>> concurrentQuery;
+
+    /**
+     * Вспомогательная структура.
+     * Требуется для хранения потоков пользователей для своевременного завершения.
+     * <ul>
+     * <li> key: идентификатор чата пользователя</li>
+     * <li> value: {@code Thread} поток пользователя</li></ul>
+     */
+    private Map<Long, ShetlerThread> threads;
+
     public AskableServiceObjects() {
         this.waitingResponses = new HashMap<>();
         this.cacheTemplates = new HashMap<>();
         this.cacheObjects = new HashMap<>();
+        this.concurrentQuery = new HashMap<>();
+        this.threads = new HashMap<>();
     }
 
-    public void addResponse(long chatId, String response) {
+    public synchronized void addResponse(long chatId, String response) {
         waitingResponses.put(chatId, response);
     }
 
-    public String getResponse(long chatId) {
+    public synchronized String getResponse(long chatId) {
         if (!waitingResponses.containsKey(chatId)) {
             // исключение
             // "Попытка получить ответ пользователя по несуществующему ключу"
@@ -65,18 +90,18 @@ public class AskableServiceObjects {
         return waitingResponses.get(chatId);
     }
 
-    public void removeResponse(long chatId) {
+    public synchronized void removeResponse(long chatId) {
         waitingResponses.remove(chatId);
     }
 
-    public  void addTemplate(String name, Askable ask) {
+    public synchronized void addTemplate(String name, Askable ask) {
         if (cacheTemplates.containsKey(name)) {
             throw new TemplateAlreadyExist(name);
         }
         cacheTemplates.put(name, ask);
     }
 
-    public  void removeTemplate(String name) {
+    public synchronized void removeTemplate(String name) {
         cacheTemplates.remove(name);
     }
 
@@ -99,7 +124,7 @@ public class AskableServiceObjects {
      * @throws TemplateNotExist вызывается, если шаблон с таким названием не существует
      * @see Askable
      */
-    public Askable getObject(String name, long chatId) {
+    public synchronized Askable getObject(String name, long chatId) {
         Askable ask = null;
         if (cacheObjects.containsKey(chatId)) {
             Map<String, Askable> map = cacheObjects.get(chatId);
@@ -112,5 +137,84 @@ public class AskableServiceObjects {
         ask = cacheTemplates.get(name).dublicate();
         addObject(chatId, name, ask);
         return ask;
+    }
+
+    /**
+     * Если для указанного идентификатора чата уже создавался поток, то он прерывается,
+     * и на его место в структуре устанавливается новый поток.
+     * @param chatId идентификатор чата
+     * @param newThread новый поток пользователя
+     * @see ShetlerThread
+     */
+    public synchronized void updateUserThread(long chatId, ShetlerThread newThread) {
+        ShetlerThread thread = threads.get(chatId);
+        if (thread != null) {
+            thread.interrupt();
+        }
+        threads.put(chatId, newThread);
+    }
+
+    /**
+     * Функция служит для подготовки структуры {@code concurrentQuery} перед запуском
+     * параллельного опроса сотрудников о том, кто готов взять пользователя в работу.
+     * @param userChatId идентифиактор чата пользователя
+     * @param employeeChatId идентификатор чата сотрудника
+     */
+    public synchronized void addEmployeeChatConcurrentQuery(long userChatId, long employeeChatId) {
+        Map<Long, Boolean> employeesChats;
+        if (concurrentQuery.containsKey(userChatId)) {
+            employeesChats = concurrentQuery.get(userChatId);
+        } else {
+            employeesChats = new HashMap<>();
+            concurrentQuery.put(userChatId, employeesChats);
+        }
+        employeesChats.put(employeeChatId, false);
+    }
+
+    /**
+     * Возвращает идентификатор чата сотрудника, который готов начать работу с пользователем.
+     * Если их будет несколько, то возвращается идентификатор по первому найденному сотруднику,
+     * ответившему на запрос положительно.
+     * @param userChatId идентификатор чата пользователя, который запустил выполнение команды
+     * @return идентификатор чата сотрудника, который готов поработать с пользователем
+     */
+    public synchronized Long findPositiveReactionOfConcurrentQuery(long userChatId) {
+        Map<Long, Boolean> employeesChats = concurrentQuery.get(userChatId);
+        if (employeesChats == null) return null;
+        for (Map.Entry<Long, Boolean> entry : employeesChats.entrySet()) {
+            if (entry.getValue()) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Функция устанавливает готовность взять пользователя в работу сотрудником c указанным идентификатором.
+     * @param employeeChatId идентификатор чата сотрудника
+     * @return {@code true} если сотрудник указал готовность работать с пользователем и при этом данный ответ
+     * был записан в структуру {@link #concurrentQuery}
+     */
+    public synchronized boolean setPositiveReactionOfConcurrentQuery(long employeeChatId) {
+        for (Map.Entry<Long, Map<Long, Boolean>> entry : concurrentQuery.entrySet()) {
+            Map<Long, Boolean> employeesChats = entry.getValue();
+            if (employeesChats.containsKey(employeeChatId)) {
+                employeesChats.put(employeeChatId, true);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Очищает сотрудников в структуре {@link #concurrentQuery}. Отсутствие сотрудников означает,
+     * что параллельный запрос на текущий момент не активен для пользователя с
+     * идентификатором {@code userChatId}.
+     * @param userChatId идентификатор чата пользователя, который запустил выполнение команды
+     */
+    public synchronized void resetConcurrentQuery(long userChatId) {
+        Map<Long, Boolean> employeesChats = concurrentQuery.get(userChatId);
+        if (employeesChats == null) return;
+        employeesChats.clear();
     }
 }
