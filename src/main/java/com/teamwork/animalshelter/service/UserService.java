@@ -1,15 +1,17 @@
 package com.teamwork.animalshelter.service;
 
+import com.teamwork.animalshelter.action.AskableServiceObjects;
+import com.teamwork.animalshelter.exception.NotFoundChatId;
 import com.teamwork.animalshelter.model.Contact;
 import com.teamwork.animalshelter.model.ContactType;
 import com.teamwork.animalshelter.model.ProbationDataType;
 import com.teamwork.animalshelter.model.User;
 import com.teamwork.animalshelter.repository.ContactRepository;
 import com.teamwork.animalshelter.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -17,17 +19,19 @@ import java.util.Map;
 public class UserService {
 
     private BotService botService;
+    private AskableServiceObjects askableServiceObjects;
 
     private final UserRepository userRepository;
     private final ContactRepository contactRepository;
 
-    public UserService(BotService botService, UserRepository userRepository, ContactRepository contactRepository) {
+    public UserService(BotService botService, AskableServiceObjects askableServiceObjects, UserRepository userRepository, ContactRepository contactRepository) {
         this.botService = botService;
+        this.askableServiceObjects = askableServiceObjects;
         this.userRepository = userRepository;
         this.contactRepository = contactRepository;
     }
 
-    private void wantToBecomeVolunteer(long chatId) throws InterruptedException {
+    public void wantToBecomeVolunteer(long chatId) throws InterruptedException {
         Map<String, String> replayMessage;
         replayMessage = botService.startAction("data_user", chatId);
 
@@ -43,7 +47,7 @@ public class UserService {
         if (user == null) {
             user = new User();
         }
-        user.setChat_id(chatId);
+        user.setChatId(chatId);
         user.setName(replayMessage.get("name"));
 
         Contact contact = new Contact();
@@ -64,22 +68,51 @@ public class UserService {
             return;
         }
 
-        Long adminstratorChatId = startConcurrentQuery(chatId, freeAdministrators, message, 5);
+        Long administratorChatId = startConcurrentQuery(chatId, freeAdministrators, message, 5);
 
-        if (adminstratorChatId == null) {
+        if (administratorChatId == null) {
             message = "Нет свободных администраторов. Закажите обратный звонок.";
             botService.sendInfo(message, ProbationDataType.TEXT, chatId);
             return;
         }
-        botService.createChat(chatId, adminstratorChatId);
+        botService.createChat(chatId, administratorChatId);
     }
 
-    private Long startConcurrentQuery (long chatId, List<User> chats, String message, int minutes) {
+    /**
+     * Функция реализует параллельный опрос свободных сотрудников, которые готовы работать с пользователем.
+     * @param userChatId идентификатор пользователя
+     * @param employees список свободных сотрудников
+     * @param message сообщение, отправляемое сотрудникам
+     * @param minutes интервал ожидания (в минутах), в течение которого будет ожидаться ответ от сотрудников
+     * @return идентификатор чата сотрудника, который выразил готовность работать с данным пользователем
+     */
+    private Long startConcurrentQuery (long userChatId, List<User> employees, String message, int minutes) throws InterruptedException {
+        for (User employee : employees) {
+            if (employee.getChatId() == 0) {
+                throw new NotFoundChatId(employee.getId());
+            }
+            askableServiceObjects.addEmployeeChatConcurrentQuery(userChatId, employee.getChatId());
+            botService.sendInfo(message, ProbationDataType.TEXT, employee.getChatId());
+        }
+        LocalDateTime startTime = LocalDateTime.now();
+        long minutesPassed = 0;
+        Long employeeChatId = null;
+        while (minutesPassed < minutes) {
+            if (Thread.currentThread().isInterrupted()) return null;
+            employeeChatId = askableServiceObjects.findPositiveReactionOfConcurrentQuery(userChatId);
+            if (employeeChatId != null) {
+                askableServiceObjects.resetConcurrentQuery(userChatId);
+                return employeeChatId;
+            }
+            Thread.sleep(5000);
+            minutesPassed = ChronoUnit.MINUTES.between(startTime, LocalDateTime.now());
+        }
+        askableServiceObjects.resetConcurrentQuery(userChatId);
         return null;
     }
 
     private User findUserByChatId(long chatId) {
-        return userRepository.findUserByChat_id(chatId);
+        return userRepository.findUserByChatId(chatId);
     }
 
     private User findUserByPhoneNumber(String phoneNumber) {
