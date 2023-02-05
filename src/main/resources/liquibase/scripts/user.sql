@@ -1,8 +1,6 @@
 -- liquibase formatted sql
-
---changeset artemiev:1
-CREATE TABLE client
-(
+-- changeset artemiev:1
+CREATE TABLE client (
     id               SERIAL PRIMARY KEY,
     name             VARCHAR(100),
     volunteer        BOOLEAN,
@@ -32,36 +30,7 @@ CREATE TABLE support
     finish              BOOLEAN
 );
 
---changeset yakovlev:1
-CREATE TABLE probation
-(
-    id          SERIAL PRIMARY KEY,
-    client_id   INTEGER REFERENCES client (id),
-    pet_id      INTEGER REFERENCES pet (id),
-    date_begin  TIMESTAMPTZ,
-    date_finish TIMESTAMPTZ,
-    success     BOOLEAN,
-    result      TEXT
-);
-
-CREATE TABLE probation_journal
-(
-    id              SERIAL,
-    probation_id    INTEGER REFERENCES probation (id),
-    date            TIMESTAMPTZ,
-    photo_received  BOOLEAN,
-    report_received BOOLEAN
-);
-
-CREATE TABLE probation_data
-(
-    id                   SERIAL PRIMARY KEY,
-    probation_journal_id INTEGER REFERENCES probation_journal (id),
-    type                 INTEGER,
-    link                 TEXT
-);
-
---changeset sirko:1
+-- changeset sirko:1
 CREATE TABLE pet
 (
     id                SERIAL PRIMARY KEY,
@@ -79,4 +48,32 @@ CREATE TABLE photo_pets
     photo  TEXT
 );
 
+-- changeset yakovlev:1
+CREATE TABLE probation
+(
+    id          SERIAL PRIMARY KEY,
+    client_id   INTEGER REFERENCES client (id),
+    pet_id      INTEGER REFERENCES pet (id),
+    date_begin  TIMESTAMPTZ,
+    date_finish TIMESTAMPTZ,
+    success     BOOLEAN,
+    result      TEXT
+);
+
+CREATE TABLE probation_journal
+(
+    id              SERIAL PRIMARY KEY,
+    probation_id    INTEGER REFERENCES probation (id),
+    date            TIMESTAMPTZ,
+    photo_received  BOOLEAN,
+    report_received BOOLEAN
+);
+
+CREATE TABLE probation_data
+(
+    id                   SERIAL PRIMARY KEY,
+    probation_journal_id INTEGER REFERENCES probation_journal (id),
+    type                 INTEGER,
+    link                 TEXT
+);
 

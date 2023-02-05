@@ -1,9 +1,15 @@
 package com.teamwork.animalshelter.action;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.teamwork.animalshelter.exception.ErrorMenu;
+import com.teamwork.animalshelter.exception.NotFoundAttributeXmlFile;
+import com.teamwork.animalshelter.exception.NotFoundElementXmlFile;
+import com.teamwork.animalshelter.parser.Element;
 import com.teamwork.animalshelter.parser.ParserXML;
 
 /**
@@ -26,7 +32,6 @@ public class Menu implements Askable{
     private String error;
     private String name;
     private int interval;
-
     private boolean waitingResponse;
 
     private Menu(String name, int interval) {
@@ -90,6 +95,10 @@ public class Menu implements Askable{
             this.command = command;
         }
 
+        public boolean getCommand() {
+            return this.command;
+        }
+
         public String getCommandName() {
             return commandName;
         }
@@ -138,6 +147,7 @@ public class Menu implements Askable{
     public void init() {
         setError("");
         setRootItemMenu();
+        setWaitingResponse(false);
     }
 
     @Override
@@ -148,8 +158,14 @@ public class Menu implements Askable{
     @Override
     public String nextAction() {
         if (itemMenu.getChilds().size() == 0) {
-            // должно быть исключение !!!
-            // "конечная ветка меню должна содержать команду"
+            if (!isCommand()) {
+                throw new ErrorMenu(getName(), "Конечный пункт меню должен содержать команду");
+            }
+            return null;
+        } else {
+            if (isCommand()) {
+                throw new ErrorMenu(getName(), "Промежуточный пункт меню НЕ должен содержать команду");
+            }
         }
         StringBuilder result = new StringBuilder();
         List<ItemMenu> childs = itemMenu.getChilds();
@@ -171,8 +187,7 @@ public class Menu implements Askable{
             }
         }
         if (!isFound) {
-            // исключение!!!
-            // "не найден пункт меню"
+            throw new ErrorMenu(getName(), String.format("Не найден пункт меню '%s'", response));
         }
     }
 
@@ -224,19 +239,109 @@ public class Menu implements Askable{
 
     /**
      * Создает новый объект {@code Menu} из файла XML
-     * @param filePath путь к файлу
+     * @param parserXML объект, с помощью которого будет производится парсинг XML
+     * @param file файловый объект
      * @return {@code Menu} возвращает новый объект
      * @see ParserXML
      */
-    public static Menu load(String filePath) {
-        return null;
+    public static Menu load(ParserXML parserXML, File file) {
+        Element root = parserXML.parse(file);
+
+        String intervalString = root.getAttributes().get("interval");
+        if (intervalString == null) {
+            throw new NotFoundAttributeXmlFile(root.getName(), "interval");
+        }
+
+        String name = root.getAttributes().get("name");
+        if (name == null) {
+            throw new NotFoundAttributeXmlFile(root.getName(), "name");
+        }
+
+        Menu menu;
+        try {
+            menu = new Menu(name, Integer.valueOf(intervalString));
+        } catch (NumberFormatException e) {
+            throw new ErrorMenu(name, "Ошибка в указании интервала");
+        } catch (Exception e) {
+            throw new ErrorMenu(name, "Ошибка при создании меню. " + e.getMessage());
+        }
+
+        ItemMenu rootItemMenu = menu.createItemMenu(root, null);
+        if (rootItemMenu == null) {
+            throw new ErrorMenu(name, "Ошибка получения корневого элемента меню");
+        }
+        menu.setItemMenu(rootItemMenu);
+        return menu;
+    }
+
+    /**
+     * Элементы меню создаются при помощи рекурсивного вызова
+     * @param element обобщенный элемент, на базе которого создается элемент меню
+     * @param parent родитель для создаваемого элемента меню
+     * @return элемент меню
+     */
+    private ItemMenu createItemMenu(Element element, ItemMenu parent) {
+        Map<String, String> attributes = element.getAttributes();
+        List<Element> childs = element.getChilds();
+        String name = null;
+        String label = null;
+        String command = null;
+        ItemMenu pointMenu = null;
+
+        switch (element.getName()) {
+            case "Menu":
+                if (!attributes.containsKey("name"))
+                    throw new NotFoundAttributeXmlFile(element.getName(), "name");
+                name = element.getAttributes().get("name");
+                pointMenu = new ItemMenu("", name, parent);
+                break;
+            case "ItemMenu":
+                if (!attributes.containsKey("name"))
+                    throw new NotFoundAttributeXmlFile(element.getName(), "name");
+                if (!attributes.containsKey("label"))
+                    throw new NotFoundAttributeXmlFile(element.getName(), "label");
+                if (childs.isEmpty() && !attributes.containsKey("command"))
+                    throw new NotFoundAttributeXmlFile(element.getName(), "command", attributes.get("label"));
+                name = element.getAttributes().get("name");
+                label = element.getAttributes().get("label");
+                command = element.getAttributes().get("command");
+                pointMenu = new ItemMenu(label, name, parent);
+                break;
+            default:
+                throw new NotFoundElementXmlFile(element.getName(), "Menu");
+        }
+
+        if (command != null) {
+            pointMenu.setCommand(true);
+            pointMenu.setCommandName(command);
+            return pointMenu;
+        }
+        for (int i=0; i < childs.size(); i++) {
+            pointMenu.addChild(createItemMenu(childs.get(i), pointMenu));
+        }
+        return pointMenu;
     }
 
     /**
      * Создает полную копию текущего объекта {@code Menu}
      * @return {@code Menu} возвращает новый объект
      */
+    @Override
     public Menu dublicate() {
-        return null;
+        Menu newMenu = new Menu(getName(), getInterval());
+        setRootItemMenu();
+        newMenu.setItemMenu(dublicateItemMenu(itemMenu, null));
+        return newMenu;
+    }
+
+    private ItemMenu dublicateItemMenu(ItemMenu pointMenu, ItemMenu parent) {
+        ItemMenu newItemMenu = new ItemMenu(pointMenu.getLabel(), pointMenu.getName(), parent);
+        newItemMenu.setCommand(pointMenu.getCommand());
+        newItemMenu.setCommandName(pointMenu.getCommandName());
+        List<ItemMenu> childs = pointMenu.getChilds();
+        for (int i = 0; i < childs.size(); i++) {
+            newItemMenu.addChild(dublicateItemMenu(childs.get(i), newItemMenu));
+        }
+        return newItemMenu;
     }
 }

@@ -6,6 +6,8 @@ import com.pengrad.telegrambot.response.SendResponse;
 import com.teamwork.animalshelter.action.Askable;
 import com.teamwork.animalshelter.action.AskableServiceObjects;
 import com.teamwork.animalshelter.exception.AskableNullPointer;
+import com.teamwork.animalshelter.exception.NotFoundCommand;
+import com.teamwork.animalshelter.exception.UnknownKey;
 import com.teamwork.animalshelter.model.ProbationDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,7 +106,8 @@ public class BotService {
                 break;
             case "phone_call":
                 break;
-
+            default:
+                throw new NotFoundCommand(command);
         }
     }
 
@@ -119,6 +122,7 @@ public class BotService {
      * @see Askable
      */
     private void doAction(Askable ask, long chatId, String s) {
+        if (Thread.currentThread().isInterrupted()) return;
         String action = ask.nextAction();
         if (action == null) return;
         askableServiceObjects.addResponse(chatId, "");
@@ -146,11 +150,16 @@ public class BotService {
         Askable ask = askableServiceObjects.getObject(name, chatId);
         if (ask == null) throw new AskableNullPointer(name);
 
+        Map<String, String> resultInterrupted = new HashMap<>();
+        resultInterrupted.put("interrupt", "");
+
         LocalDateTime startTime = LocalDateTime.now();
         String s = "";
         ask.init();
         while (!ask.empty()) {
+            if (Thread.currentThread().isInterrupted()) return resultInterrupted;
             while (ask.isWaitingResponse()) {
+                if (Thread.currentThread().isInterrupted()) return resultInterrupted;
                 String response = askableServiceObjects.getResponse(chatId);
                 s = "";
                 if (response.isEmpty()) {
@@ -158,9 +167,7 @@ public class BotService {
                     if (ask.intervalExceeded((int) minutesPassed)) {
                         ask.setWaitingResponse(false);
                         askableServiceObjects.removeResponse(chatId);
-                        Map<String, String> result = new HashMap<>();
-                        result.put("interrupt", "");
-                        return result;
+                        return resultInterrupted;
                     }
                     Thread.sleep(10_000);
                 } else {
@@ -169,9 +176,7 @@ public class BotService {
                     if (response.equals("0") || response.equals("'0'")) {
                         s = "Можете выбрать другую команду.";
                         sendInfo(s, ProbationDataType.TEXT, chatId);
-                        Map<String, String> result = new HashMap<>();
-                        result.put("interrupt", "");
-                        return result;
+                        return resultInterrupted;
                     }
                     if (ask.verificationRequired() && !ask.checkResponse(response)) {
                         s = "В вашем ответе была допущена ошибка: " + ask.getLastError() + "\n Введите ваш ответ еще раз (для выхода из команды отправьте '0')";
@@ -187,7 +192,85 @@ public class BotService {
         return ask.getResult();
     }
 
-    public void createChat(long userChatId, long adminChatId) {
+    /**
+     * Создает и запускает работу чата. Бот выступает посредником при пересылке сообщений
+     * между сотрудником и пользователем. Интервал ожидания новых сообщений задается
+     * в переменной {@code intervalWaiting} (в минутах). Если этот интервал превышен, то чат будет закрыт.
+     * Отсчет времени бездействия начинается после отправки последнего сообщения.
+     * @param userChatId идентификатор чата пользователя
+     * @param employeeChatId идентификатор чата сотрудника
+     */
+    public void createChat(long userChatId, long employeeChatId) {
+        final int intervalWaiting = 10;
 
+        askableServiceObjects.resetQueueChat(userChatId);
+        askableServiceObjects.resetQueueChat(employeeChatId);
+        askableServiceObjects.addResponse(userChatId, "chat");
+        askableServiceObjects.addResponse(employeeChatId, "chat");
+
+        String message = "Чат открыт. Можете начинать беседу";
+        sendInfo(message, ProbationDataType.TEXT, employeeChatId);
+        sendInfo(message, ProbationDataType.TEXT, userChatId);
+
+        LocalDateTime startTime = LocalDateTime.now();
+        long minutesPassed = 0;
+        boolean chatStopped = false;
+
+        while (minutesPassed < intervalWaiting) {
+            if (Thread.currentThread().isInterrupted()) return;
+            while (!askableServiceObjects.isEmptyQueue(userChatId)) {
+                message = askableServiceObjects.getMessageFromQueueChat(userChatId);
+                sendInfo(message, ProbationDataType.TEXT, employeeChatId);
+                startTime = LocalDateTime.now();
+            }
+            while (!askableServiceObjects.isEmptyQueue(employeeChatId)) {
+                message = askableServiceObjects.getMessageFromQueueChat(employeeChatId);
+                if (message.equals("/close")) {
+                    chatStopped = true;
+                    break;
+                }
+                sendInfo(message, ProbationDataType.TEXT, userChatId);
+                startTime = LocalDateTime.now();
+            }
+            if (chatStopped) break;
+            minutesPassed = ChronoUnit.MINUTES.between(startTime, LocalDateTime.now());
+        }
+        askableServiceObjects.resetServiceObjects(userChatId);
+        askableServiceObjects.resetServiceObjects(employeeChatId);
+
+        message = "Чат остановлен. Всего вам хорошего!";
+        sendInfo(message, ProbationDataType.TEXT, employeeChatId);
+        sendInfo(message, ProbationDataType.TEXT, userChatId);
+    }
+
+    public void processMessageText(String message, long chatId) {
+        try {
+            switch (message) {
+                case "/info":
+                    Map<String, String> result = startAction("menu_info", chatId);
+                    if (result.containsKey("interrupt")) return;
+                    if (result.containsKey("command")) {
+                        runCommands(result.get("command"), chatId);
+                    }
+                    callErrorKeyMap(result, "processMessageText() -> message");
+                    break;
+
+                default:
+
+            }
+
+        } catch(InterruptedException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    private void callErrorKeyMap(Map<String, String> map, String hint) {
+        String[] keys = (String[]) map.keySet().toArray();
+
+        if (keys.length == 0) {
+            throw new UnknownKey("", hint);
+        } else {
+            throw new UnknownKey(keys[0], hint);
+        }
     }
 }
