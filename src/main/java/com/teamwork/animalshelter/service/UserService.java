@@ -79,7 +79,14 @@ public class UserService {
             return;
         }
 
-        //... записать в бд, что employee занят
+        // записать в БД, что сотрудник занят
+        for (User admin : freeAdministrators) {
+            if (admin.getChatId() == administratorChatId) {
+                admin.setVolunteerActive(true);
+                userRepository.saveAndFlush(admin);
+                break;
+            }
+        }
 
         botService.createChat(chatId, administratorChatId);
     }

@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<Questionnaire name="find-admin" interval="5">
-    <Question label="admin-is-free">
-        <Content>Вы свободны?</Content>
-        <Check>^([А-Яа-я ]{3,})$</Check>
-        <Hint>Использовать можно только русские буквы и пробел</Hint>
-    </Question>
-</Questionnaire>
