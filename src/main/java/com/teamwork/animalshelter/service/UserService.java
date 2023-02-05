@@ -68,6 +68,9 @@ public class UserService {
             return;
         }
 
+        message = "Идет поиск свободных администраторов. Пожалуйста, подождите... (время ожидания не более 5 минут)";
+        botService.sendInfo(message, ProbationDataType.TEXT, chatId);
+
         Long administratorChatId = startConcurrentQuery(chatId, freeAdministrators, message, 5);
 
         if (administratorChatId == null) {
@@ -75,6 +78,9 @@ public class UserService {
             botService.sendInfo(message, ProbationDataType.TEXT, chatId);
             return;
         }
+
+        //... записать в бд, что employee занят
+
         botService.createChat(chatId, administratorChatId);
     }
 

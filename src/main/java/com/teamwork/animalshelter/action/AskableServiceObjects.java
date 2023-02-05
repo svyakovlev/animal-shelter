@@ -6,8 +6,7 @@ import com.teamwork.animalshelter.exception.TemplateAlreadyExist;
 import com.teamwork.animalshelter.exception.TemplateNotExist;
 import com.teamwork.animalshelter.service.BotService;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Класс определяет набор служебных структур, используемых при диалоге с пользователем.
@@ -70,12 +69,22 @@ public class AskableServiceObjects {
      */
     private Map<Long, ShetlerThread> threads;
 
+    /**
+     * Вспомогательная структура.
+     * Требуется для работы чата. Служит промежуточным узлом хранения сообщений.
+     * <ul>
+     * <li> key: идентификатор чата</li>
+     * <li> value: очередь сообщений</li></ul>
+     */
+    private Map<Long, Queue<String>> queueChat;
+
     public AskableServiceObjects() {
         this.waitingResponses = new HashMap<>();
         this.cacheTemplates = new HashMap<>();
         this.cacheObjects = new HashMap<>();
         this.concurrentQuery = new HashMap<>();
         this.threads = new HashMap<>();
+        this.queueChat = new HashMap<>();
     }
 
     public synchronized void addResponse(long chatId, String response) {
@@ -217,4 +226,44 @@ public class AskableServiceObjects {
         if (employeesChats == null) return;
         employeesChats.clear();
     }
+
+    public synchronized void addMessageIntoQueueChat(long chatId, String message) {
+        if (message == null || message.trim().isEmpty()) return;
+        Queue<String> queue = queueChat.get(chatId);
+        if (queue == null) {
+            queue = new ArrayDeque<>();
+        }
+        queue.offer(message);
+    }
+
+    public synchronized String getMessageFromQueueChat(long chatId) {
+        Queue<String> queue = queueChat.get(chatId);
+        if (queue == null) {
+            return null;
+        }
+        return queue.poll();
+    }
+
+    public synchronized void resetQueueChat(long chatId) {
+        Queue<String> queue = queueChat.get(chatId);
+        if (queue == null) {
+            return;
+        }
+        queue.clear();
+    }
+
+    public synchronized boolean isEmptyQueue(long chatId) {
+        Queue<String> queue = queueChat.get(chatId);
+        if (queue == null) {
+            return true;
+        }
+        return queue.isEmpty();
+    }
+
+    public synchronized void resetServiceObjects(long chatId) {
+        removeResponse(chatId);
+        resetConcurrentQuery(chatId);
+        resetQueueChat(chatId);
+    }
+
 }

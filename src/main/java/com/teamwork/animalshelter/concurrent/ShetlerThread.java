@@ -12,8 +12,7 @@ public class ShetlerThread extends Thread {
         super(target);
         this.chatId = chatId;
         askableServiceObjects.updateUserThread(chatId, this);
-        askableServiceObjects.removeResponse(chatId);
-        askableServiceObjects.resetConcurrentQuery(chatId);
+        askableServiceObjects.resetServiceObjects(chatId);
     }
 
     public void abort() {
