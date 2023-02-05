@@ -5,6 +5,7 @@ import com.teamwork.animalshelter.configuration.TelegramBotConfiguration;
 import com.teamwork.animalshelter.exception.TemplateAlreadyExist;
 import com.teamwork.animalshelter.exception.TemplateNotExist;
 import com.teamwork.animalshelter.service.BotService;
+import org.springframework.stereotype.Service;
 
 import java.util.*;
 
@@ -14,6 +15,7 @@ import java.util.*;
  * @see TelegramBotConfiguration
  * @see BotService
  */
+@Service
 public class AskableServiceObjects {
 
     /**

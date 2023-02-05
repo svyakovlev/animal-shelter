@@ -157,8 +157,10 @@ public class Questionnaire implements Askable{
                         break;
                     case "Check":
                         questionnaire.addCheck(label, section.getText());
+                        break;
                     case "Hint":
                         questionnaire.addHint(label, section.getText());
+                        break;
                     default:
                         throw new ErrorQuestionnaire(name, String.format("'%s' - Неверное имя элемента.", section.getName()));
                 }

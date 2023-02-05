@@ -6,6 +6,8 @@ import com.pengrad.telegrambot.response.SendResponse;
 import com.teamwork.animalshelter.action.Askable;
 import com.teamwork.animalshelter.action.AskableServiceObjects;
 import com.teamwork.animalshelter.exception.AskableNullPointer;
+import com.teamwork.animalshelter.exception.NotFoundCommand;
+import com.teamwork.animalshelter.exception.UnknownKey;
 import com.teamwork.animalshelter.model.ProbationDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,7 +106,8 @@ public class BotService {
                 break;
             case "phone_call":
                 break;
-
+            default:
+                throw new NotFoundCommand(command);
         }
     }
 
@@ -240,4 +243,34 @@ public class BotService {
         sendInfo(message, ProbationDataType.TEXT, userChatId);
     }
 
+    public void processMessageText(String message, long chatId) {
+        try {
+            switch (message) {
+                case "/info":
+                    Map<String, String> result = startAction("menu_info", chatId);
+                    if (result.containsKey("interrupt")) return;
+                    if (result.containsKey("command")) {
+                        runCommands(result.get("command"), chatId);
+                    }
+                    callErrorKeyMap(result, "processMessageText() -> message");
+                    break;
+
+                default:
+
+            }
+
+        } catch(InterruptedException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    private void callErrorKeyMap(Map<String, String> map, String hint) {
+        String[] keys = (String[]) map.keySet().toArray();
+
+        if (keys.length == 0) {
+            throw new UnknownKey("", hint);
+        } else {
+            throw new UnknownKey(keys[0], hint);
+        }
+    }
 }
