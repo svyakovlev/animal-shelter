@@ -20,7 +20,7 @@ public class User {
     private boolean volunteerActive;
 
     private boolean administrator;
-    private long chat_id;
+    private long chatId;
 
     @Column(name = "last_visit")
     private LocalDateTime lastVisit;
@@ -39,12 +39,12 @@ public class User {
 
     public User() {}
 
-    public User(String name, boolean volunteer, boolean volunteerActive, boolean administrator, long chat_id, LocalDateTime lastVisit, String timeZone) {
+    public User(String name, boolean volunteer, boolean volunteerActive, boolean administrator, long chatId, LocalDateTime lastVisit, String timeZone) {
         this.name = name;
         this.volunteer = volunteer;
         this.volunteerActive = volunteerActive;
         this.administrator = administrator;
-        this.chat_id = chat_id;
+        this.chatId = chatId;
         this.lastVisit = lastVisit;
         this.timeZone = timeZone;
     }
@@ -89,12 +89,12 @@ public class User {
         this.administrator = administrator;
     }
 
-    public long getChat_id() {
-        return chat_id;
+    public long getChatId() {
+        return chatId;
     }
 
-    public void setChat_id(long chat_id) {
-        this.chat_id = chat_id;
+    public void setChatId(long chatId) {
+        this.chatId = chatId;
     }
 
     public LocalDateTime getLastVisit(Integer id) {return lastVisit;
@@ -120,7 +120,7 @@ public class User {
                 ", volunteer=" + volunteer +
                 ", volunteerActive=" + volunteerActive +
                 ", administrator=" + administrator +
-                ", chat_id=" + chat_id +
+                ", chat_id=" + chatId +
                 ", lastVisit=" + lastVisit +
                 ", timeZone='" + timeZone + '\'' +
                 '}';
@@ -131,11 +131,11 @@ public class User {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
-        return chat_id == user.chat_id;
+        return chatId == user.chatId;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(chat_id);
+        return Objects.hash(chatId);
     }
 }

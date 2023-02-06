@@ -1,5 +1,7 @@
 package com.teamwork.animalshelter.parser;
 
+import com.teamwork.animalshelter.exception.ErrorElementXmlFile;
+import com.teamwork.animalshelter.exception.WrongFormatXmlFile;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -16,13 +18,13 @@ import java.util.*;
  */
 public class ParserXML {
     private final SAXParser parser;
-    private final ParserHandler handler;
+    private ParserHandler handler;
 
     public ParserXML() {
         SAXParserFactory factory = SAXParserFactory.newInstance();
         try {
             this.parser = factory.newSAXParser();
-            this.handler = new ParserHandler();
+            this.handler = null;
         } catch (ParserConfigurationException e) {
             throw new RuntimeException(e);
         } catch (SAXException e) {
@@ -32,16 +34,16 @@ public class ParserXML {
 
     /**
      * Запускает парсинг файла XML.
-     * @param filePath путь к файлу
+     * @param file файловый объект
      * @return {@code Element} корневой элемент спарсенного файла XML
      * @see Element
      */
-    public Element parse(String filePath) {
-        File file = new File(filePath);
+    public Element parse(File file) {
         try {
+            handler = new ParserHandler();
             parser.parse(file, handler);
         } catch (SAXException e) {
-            throw new RuntimeException(e);
+            throw new WrongFormatXmlFile(file.getPath());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -71,6 +73,7 @@ public class ParserXML {
         @Override
         public void startElement(String uri, String localName, String qName, Attributes attributes) {
             Element elem = new Element(qName, currentElement);
+            if (root == null) root = elem;
             for (int i = 0; i < attributes.getLength(); i++) {
                 elem.addAttribute(attributes.getQName(i), attributes.getValue(i));
             }
@@ -83,12 +86,29 @@ public class ParserXML {
 
         @Override
         public void endElement(String uri, String localName, String qName) {
-
+            if (currentElement == null) {
+                throw new ErrorElementXmlFile(qName, "");
+            }
+            if (!qName.equals(currentElement.getName())) {
+                throw new ErrorElementXmlFile(qName, currentElement.getName());
+            }
+            try {
+                if (currentElement != root) {
+                    currentElement = stackElements.pop();
+                }
+            } catch (NoSuchElementException e) {
+                throw new ErrorElementXmlFile(currentElement.getName());
+            }
         }
 
         @Override
         public void characters (char ch[], int start, int length) {
-
+            String s = String.valueOf(ch, start, length).trim();
+            if (s.isEmpty()) return;
+            if (currentElement == null) {
+                throw new ErrorElementXmlFile(ch, start, length);
+            }
+            currentElement.setText(s);
         }
     }
 }

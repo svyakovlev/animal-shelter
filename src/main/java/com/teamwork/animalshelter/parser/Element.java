@@ -49,4 +49,28 @@ public class Element {
     public void addAttribute(String key, String value) {
         attributes.put(key, value);
     }
+
+    public String getName() {
+        return name;
+    }
+
+    public Element getParent() {
+        return parent;
+    }
+
+    public List<Element> getChilds() {
+        return childs;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
 }
