@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<Menu name="menu_info" interval="5">
+    <ItemMenu label="1" name="1. Получить информацию о приюте" command="common_info"/>
+    <ItemMenu label="2" name="2. Расписание работы и контактная информация" command="contact_info"/>
+    <ItemMenu label="3" name="3. Рекомендации по технике безопасности на территории приюта" command="accident_prevention_info"/>
+    <ItemMenu label="4" name="4. Позвать волонтера" command="chat"/>
+    <ItemMenu label="5" name="5. Заказать обратный звонок" command="phone_call"/>
+</Menu>
