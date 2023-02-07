@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
-    @Query(value = "SELECT lastVisit FROM client WHERE chat_id=:chat_user ",nativeQuery = true)
- LocalDateTime lastVisit(@Param("chat_user") long chatId);
+
+    User findUserByChatId(Long chatId);
+
+
 }

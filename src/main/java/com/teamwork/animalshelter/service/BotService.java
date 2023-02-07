@@ -9,6 +9,8 @@ import com.teamwork.animalshelter.exception.AskableNullPointer;
 import com.teamwork.animalshelter.exception.NotFoundCommand;
 import com.teamwork.animalshelter.exception.UnknownKey;
 import com.teamwork.animalshelter.model.ProbationDataType;
+import com.teamwork.animalshelter.model.User;
+import com.teamwork.animalshelter.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,11 +26,14 @@ public class BotService {
     private final Logger logger = LoggerFactory.getLogger(BotService.class);
     private final AskableServiceObjects askableServiceObjects;
     private final AnimalShetlerInfoService animalShetlerInfoService;
+    private final UserRepository userRepository;
 
-    public BotService(TelegramBot telegramBot, AskableServiceObjects askableServiceObjects, AnimalShetlerInfoService animalShetlerInfoService) {
+    public BotService(TelegramBot telegramBot, AskableServiceObjects askableServiceObjects, AnimalShetlerInfoService animalShetlerInfoService,
+                      UserRepository userRepository) {
         this.telegramBot = telegramBot;
         this.askableServiceObjects = askableServiceObjects;
         this.animalShetlerInfoService = animalShetlerInfoService;
+        this.userRepository = userRepository;
     }
 
     private void verifyResponse(SendResponse response, long chatId) {
@@ -271,6 +276,18 @@ public class BotService {
             throw new UnknownKey("", hint);
         } else {
             throw new UnknownKey(keys[0], hint);
+        }
+    }
+
+    public void sendGreeting(long chatId, LocalDateTime newVisit ) {
+       User user=userRepository.findUserByChatId(chatId);
+        if (user != null) {
+            LocalDateTime lastVisit = user.getLastVisit();
+            if (lastVisit == null||lastVisit.toLocalDate().atStartOfDay().compareTo(newVisit.toLocalDate().atStartOfDay())!=0) {
+                sendInfo(String.format("Добро пожаловать, %s",user.getName()),ProbationDataType.TEXT,chatId);
+            }
+            user.setLastVisit(newVisit);
+            userRepository.saveAndFlush(user);
         }
     }
 }
