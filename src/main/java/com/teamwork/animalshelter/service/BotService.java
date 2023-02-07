@@ -205,7 +205,7 @@ public class BotService {
      * @param userChatId идентификатор чата пользователя
      * @param employeeChatId идентификатор чата сотрудника
      */
-    public void createChat(long userChatId, long employeeChatId) {
+    public void createChat(long userChatId, long employeeChatId) throws InterruptedException {
         final int intervalWaiting = 10;
 
         askableServiceObjects.resetQueueChat(userChatId);
@@ -222,7 +222,6 @@ public class BotService {
         boolean chatStopped = false;
 
         while (minutesPassed < intervalWaiting) {
-            if (Thread.currentThread().isInterrupted()) return;
             while (!askableServiceObjects.isEmptyQueue(userChatId)) {
                 message = askableServiceObjects.getMessageFromQueueChat(userChatId);
                 sendInfo(message, ProbationDataType.TEXT, employeeChatId);
@@ -238,6 +237,8 @@ public class BotService {
                 startTime = LocalDateTime.now();
             }
             if (chatStopped) break;
+            Thread.sleep(10_000);
+            if (Thread.currentThread().isInterrupted()) return;
             minutesPassed = ChronoUnit.MINUTES.between(startTime, LocalDateTime.now());
         }
         askableServiceObjects.resetServiceObjects(userChatId);

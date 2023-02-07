@@ -20,6 +20,7 @@ public class User {
     private boolean volunteerActive;
 
     private boolean administrator;
+    @Column(name = "chat_id")
     private long chatId;
 
     @Column(name = "last_visit")

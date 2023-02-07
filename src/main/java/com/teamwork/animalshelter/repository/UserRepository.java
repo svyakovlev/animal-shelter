@@ -8,11 +8,12 @@ import org.springframework.stereotype.Repository;
 
 import javax.persistence.Column;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
 
     User findUserByChatId(Long chatId);
 
-
+    List<User> findUsersByAdministratorIsTrueAndVolunteerActiveIsTrue();
 }
