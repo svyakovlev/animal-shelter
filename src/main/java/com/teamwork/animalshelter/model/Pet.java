@@ -26,16 +26,12 @@ public class Pet {
     @Column(name = "looking_for_owner")
     private Boolean lookingForOwner;
 
-
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "pet")
     private Set<PhotoPets> photoPets;
 
-    public Pet(Set<PhotoPets> photoPets) {
+    public Pet() {}
 
-    }
-
-    public Pet(Integer id, String nickname, String breed, Integer age, String character, Boolean lookingForOwner, PhotoPets photoPets) {
-        this.id = id;
+    public Pet(String nickname, String breed, Integer age, String character, Boolean lookingForOwner) {
         this.nickname = nickname;
         this.breed = breed;
         this.age = age;

@@ -8,6 +8,7 @@ import java.util.Objects;
  */
 
 @Entity
+@Table(name = "probation_data")
 public class ProbationData {
 
     @Id
@@ -22,8 +23,9 @@ public class ProbationData {
     @JoinColumn(name = "probation_journal_id")
     private ProbationJournal probationJournal;
 
-    public ProbationData(int id, ProbationDataType type, String link, ProbationJournal probationJournal) {
-        this.id = id;
+    public ProbationData() {}
+
+    public ProbationData(ProbationDataType type, String link, ProbationJournal probationJournal) {
         this.type = type;
         this.link = link;
         this.probationJournal = probationJournal;
