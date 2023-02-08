@@ -8,16 +8,18 @@ import com.teamwork.animalshelter.action.AskableServiceObjects;
 import com.teamwork.animalshelter.exception.AskableNullPointer;
 import com.teamwork.animalshelter.exception.NotFoundCommand;
 import com.teamwork.animalshelter.exception.UnknownKey;
-import com.teamwork.animalshelter.model.ProbationDataType;
-import com.teamwork.animalshelter.model.User;
+import com.teamwork.animalshelter.model.*;
+import com.teamwork.animalshelter.repository.ProbationJournalRepository;
 import com.teamwork.animalshelter.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -27,13 +29,16 @@ public class BotService {
     private final AskableServiceObjects askableServiceObjects;
     private final AnimalShetlerInfoService animalShetlerInfoService;
     private final UserRepository userRepository;
+    private final ProbationJournalRepository probationJournalRepository;
 
-    public BotService(TelegramBot telegramBot, AskableServiceObjects askableServiceObjects, AnimalShetlerInfoService animalShetlerInfoService,
-                      UserRepository userRepository) {
+    public BotService(TelegramBot telegramBot, AskableServiceObjects askableServiceObjects,
+                      AnimalShetlerInfoService animalShetlerInfoService,
+                      UserRepository userRepository, ProbationJournalRepository probationJournalRepository) {
         this.telegramBot = telegramBot;
         this.askableServiceObjects = askableServiceObjects;
         this.animalShetlerInfoService = animalShetlerInfoService;
         this.userRepository = userRepository;
+        this.probationJournalRepository = probationJournalRepository;
     }
 
     private void verifyResponse(SendResponse response, long chatId) {
@@ -110,6 +115,8 @@ public class BotService {
             case "chat":
                 break;
             case "phone_call":
+                break;
+            case "form_daily_report":
                 break;
             default:
                 throw new NotFoundCommand(command);
@@ -291,4 +298,36 @@ public class BotService {
             userRepository.saveAndFlush(user);
         }
     }
+
+    /**
+     * Функция выполняет отправку напоминания клиенту в случае, если он отправил либо только форму отчета,
+     * либо только фотографии питомца. Напоминания приходят только в день отправки документов.
+     * <ul>
+     *     Выполняются следующие проверки записей журнала ({@link ProbationJournal}
+     *     <li>полученные записи находятся в интервале с полуночи текущего дня до текущей даты минус 1 час</li>
+     *     <li>клиент находится на испытательном сроке </li>
+     *     <li>было отправлено только что-то одно: форма отчета или фотографии</li>
+     * </ul>
+     */
+    @Scheduled(cron = "* * 9-20/2 * * *")
+    public void remindAboutReport() {
+        List<ProbationJournal> records =  probationJournalRepository.getJournalRecordsOnIncompleteReport();
+        Probation probation = null;
+        String message;
+        LocalDateTime currentDate = LocalDateTime.now();
+        for (ProbationJournal record : records) {
+            if (!(record.isPhotoReceived() ^ record.isReportReceived())) continue;
+            probation = record.getProbation();
+            if (currentDate.isAfter(probation.getDateBegin()) && currentDate.isBefore(probation.getDateFinish())) {
+                User user = probation.getUser();
+                Pet pet = probation.getPet();
+                if (record.isPhotoReceived())
+                    message = String.format("%s, напоминаем Вам, что сегодня необходимо еще отправить заполненную форму отчета по питомцу '%s'!", user.getName(), pet.getNickname());
+                else
+                    message = String.format("%s, напоминаем Вам, что сегодня необходимо еще отправить фотографии питомца '%s'!", user.getName(), pet.getNickname());
+                sendInfo(message, ProbationDataType.TEXT, user.getChatId());
+            }
+        }
+    }
+
 }
