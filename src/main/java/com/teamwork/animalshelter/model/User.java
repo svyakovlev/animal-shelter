@@ -29,13 +29,13 @@ public class User {
     @Column(name = "time_zone")
     private String timeZone;
 
-    @OneToMany(mappedBy = "client")
+    @OneToMany(mappedBy = "user")
     private Set<Contact> contacts;
 
-    @OneToMany(mappedBy = "client")
+    @OneToMany(mappedBy = "user")
     private Set<Support> supportRecordsByUser;
 
-    @OneToMany(mappedBy = "client")
+    @OneToMany(mappedBy = "volunteer")
     private Set<Support> supportRecordsByVolunteer;
 
     public User() {}

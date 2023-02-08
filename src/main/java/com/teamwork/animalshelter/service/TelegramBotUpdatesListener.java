@@ -36,35 +36,36 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     public int process(List<Update> updates) {
         updates.forEach(update -> {
 
-            long chatId = update.message().chat().id();
-            switch (update.message().text()) {
-                case "/info":
-                    new ShetlerThread(chatId, askableServiceObjects, () -> botService.processMessageText("/info", chatId));
-                    break;
-                case "/consultation":
-                    break;
-                case "/pet":
-                    break;
-                case "/call":
-                    break;
-                case "/chat":
-                    break;
-                case "/keeping":
-                    break;
-                case "/volunteer":
-                    new ShetlerThread(chatId, askableServiceObjects, () -> {
-                        try {
-                            userService.wantToBecomeVolunteer(chatId);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-                    break;
-                default:
+            if (update.message() != null) {
+                long chatId = update.message().chat().id();
+                switch (update.message().text()) {
+                    case "/info":
+                        new ShetlerThread(chatId, askableServiceObjects, () -> botService.processMessageText("/info", chatId)).start();
+                        break;
+                    case "/consultation":
+                        break;
+                    case "/pet":
+                        break;
+                    case "/call":
+                        break;
+                    case "/chat":
+                        break;
+                    case "/keeping":
+                        break;
+                    case "/volunteer":
+                        new ShetlerThread(chatId, askableServiceObjects, () -> {
+                            try {
+                                userService.wantToBecomeVolunteer(chatId);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+                        break;
+                    default:
 
-            }
+                }
 
-        });
+        }});
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
 

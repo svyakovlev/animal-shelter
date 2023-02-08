@@ -170,7 +170,7 @@ public class Menu implements Askable{
         StringBuilder result = new StringBuilder();
         List<ItemMenu> childs = itemMenu.getChilds();
         for(int i=0; i < childs.size(); i++) {
-            result.append(childs.get(i));
+            result.append(childs.get(i).getName());
             result.append('\n');
         }
         return result.toString();
