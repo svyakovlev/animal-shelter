@@ -77,3 +77,12 @@ CREATE TABLE probation_data
     link                 TEXT
 );
 
+-- changeset artemiev:2
+ALTER TABLE probation
+ADD COLUMN message TEXT;
+
+-- changeset artemiev:3
+ALTER TABLE probation ALTER COLUMN  client_id SET NOT NULL;
+ALTER TABLE probation ALTER COLUMN  pet_id SET NOT NULL;
+ALTER TABLE probation ALTER COLUMN  date_begin SET NOT NULL;
+ALTER TABLE probation ALTER COLUMN  date_finish SET NOT NULL;

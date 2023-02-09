@@ -33,6 +33,7 @@ public class Probation {
     private boolean success;
 
     private String result;
+    private String message;
 
     @ManyToOne()
     @JoinColumn(name = "client_id")
@@ -103,6 +104,14 @@ public class Probation {
 
     public Pet getPet() {
         return pet;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     public void setPet(Pet pet) {

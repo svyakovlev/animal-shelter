@@ -6,10 +6,12 @@ import com.pengrad.telegrambot.response.SendResponse;
 import com.teamwork.animalshelter.action.Askable;
 import com.teamwork.animalshelter.action.AskableServiceObjects;
 import com.teamwork.animalshelter.exception.AskableNullPointer;
+import com.teamwork.animalshelter.exception.NotFoundAdministrator;
 import com.teamwork.animalshelter.exception.NotFoundCommand;
 import com.teamwork.animalshelter.exception.UnknownKey;
 import com.teamwork.animalshelter.model.*;
 import com.teamwork.animalshelter.repository.ProbationJournalRepository;
+import com.teamwork.animalshelter.repository.ProbationRepository;
 import com.teamwork.animalshelter.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,9 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class BotService {
@@ -30,15 +30,20 @@ public class BotService {
     private final AnimalShetlerInfoService animalShetlerInfoService;
     private final UserRepository userRepository;
     private final ProbationJournalRepository probationJournalRepository;
+    private final ProbationRepository probationRepository;
+    private final UserService userService;
 
     public BotService(TelegramBot telegramBot, AskableServiceObjects askableServiceObjects,
                       AnimalShetlerInfoService animalShetlerInfoService,
-                      UserRepository userRepository, ProbationJournalRepository probationJournalRepository) {
+                      UserRepository userRepository, ProbationJournalRepository probationJournalRepository,
+                      ProbationRepository probationRepository, UserService userService) {
         this.telegramBot = telegramBot;
         this.askableServiceObjects = askableServiceObjects;
         this.animalShetlerInfoService = animalShetlerInfoService;
         this.userRepository = userRepository;
         this.probationJournalRepository = probationJournalRepository;
+        this.probationRepository = probationRepository;
+        this.userService = userService;
     }
 
     private void verifyResponse(SendResponse response, long chatId) {
@@ -312,6 +317,7 @@ public class BotService {
     @Scheduled(cron = "* * 9-20/2 * * *")
     public void remindAboutReport() {
         List<ProbationJournal> records =  probationJournalRepository.getJournalRecordsOnIncompleteReport();
+        if (records == null) return;
         Probation probation = null;
         String message;
         LocalDateTime currentDate = LocalDateTime.now();
@@ -328,6 +334,77 @@ public class BotService {
                 sendInfo(message, ProbationDataType.TEXT, user.getChatId());
             }
         }
+    }
+
+    /**
+     * Отправляет сообщение пользователю, котоое было подготовлено сотрудником.
+     */
+    @Scheduled(cron = "0 0 0/1 * * *")
+    public void sendMessageOnProbation() {
+        List<Probation> probations = probationRepository.getActiveProbationsWithMessages();
+        if (probations == null) return;
+        String message = "Вам сообщение от сотрудника приюта.\n";
+        for (Probation probation : probations) {
+            sendInfo(message + probation.getMessage(), ProbationDataType.TEXT, probation.getUser().getChatId());
+            probation.setMessage("");
+            probationRepository.saveAndFlush(probation);
+        }
+    }
+
+    /**
+     * Отправляет волонтерам сообщения: выяснить причины, по которым клиент перестал
+     * посылать отчеты по питомцу. Отправка сообщения происходит в том случае, если
+     * клиент не посылал отчеты более 2-х суток (расчет интервала идет от полуночи текущего дня
+     * в обратную сторону).
+     * @throws NotFoundAdministrator вызывается в случае, когда в базе нет ни одного администратора.
+     */
+    @Scheduled(cron = "0 0 9/24 * * *")
+    public void remindAboutReportProblem() {
+        List<Probation> probations = probationRepository.getProbationsOnReportProblem();
+        if (probations == null) return;
+        sendTasksToEmployees(probations, "Требуется выяснить, почему клиент перестал посылать отчеты по питомцу.");
+    }
+
+    private void sendTasksToEmployees(List<Probation> probations, String taskString) {
+        List<User> freeVolunteers = userRepository.findUsersByVolunteerActiveIsTrue();
+        User adminEmployee = userRepository.findFirstByAdministratorIsTrue().get();
+        if (adminEmployee == null) {
+            throw new NotFoundAdministrator();
+        }
+        List<User> volunteers = null;
+        ListIterator<User> iterator = null;
+        if (freeVolunteers != null) {
+            volunteers = new LinkedList<>(freeVolunteers);
+            iterator = volunteers.listIterator();
+        }
+        long chatId;
+        String message = taskString +
+                "\nИмя клиента: %s,\n" +
+                "телефоны: %s, \n" +
+                "кличка питомца: %s.";
+        for (Probation probation : probations) {
+            User user = probation.getUser();
+            if (volunteers == null) chatId = adminEmployee.getChatId();
+            else {
+                if (!iterator.hasNext()) iterator = volunteers.listIterator();
+                chatId = iterator.next().getChatId();
+            }
+            sendInfo(String.format(message, user.getName(),
+                            userService.getTelephonesByUser(user),
+                            probation.getPet().getNickname()),
+                    ProbationDataType.TEXT,
+                    chatId);
+        }
+    }
+
+    /**
+     * Отправляет волонтерам сообщения с требованием принять решение по испытательному сроку.
+     */
+    @Scheduled(cron = "0 0 12/24 * * *")
+    void checkFinishProbation() {
+        List<Probation> probations = probationRepository.findProbationByDateFinishBeforeAndAndSuccessIsFalseAndResultEquals(LocalDateTime.now(), "");
+        if (probations == null) return;
+        sendTasksToEmployees(probations, "Следует принять решение по испытательному сроку.");
     }
 
 }

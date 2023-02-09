@@ -105,6 +105,30 @@ public class User {
         this.lastVisit = lastVisit;
     }
 
+    public Set<Contact> getContacts() {
+        return contacts;
+    }
+
+    public void setContacts(Set<Contact> contacts) {
+        this.contacts = contacts;
+    }
+
+    public Set<Support> getSupportRecordsByUser() {
+        return supportRecordsByUser;
+    }
+
+    public void setSupportRecordsByUser(Set<Support> supportRecordsByUser) {
+        this.supportRecordsByUser = supportRecordsByUser;
+    }
+
+    public Set<Support> getSupportRecordsByVolunteer() {
+        return supportRecordsByVolunteer;
+    }
+
+    public void setSupportRecordsByVolunteer(Set<Support> supportRecordsByVolunteer) {
+        this.supportRecordsByVolunteer = supportRecordsByVolunteer;
+    }
+
     public String getTimeZone() {
         return timeZone;
     }
