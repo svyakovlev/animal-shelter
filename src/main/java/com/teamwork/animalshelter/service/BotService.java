@@ -12,6 +12,7 @@ import com.teamwork.animalshelter.exception.UnknownKey;
 import com.teamwork.animalshelter.model.*;
 import com.teamwork.animalshelter.repository.ProbationJournalRepository;
 import com.teamwork.animalshelter.repository.ProbationRepository;
+import com.teamwork.animalshelter.repository.SupportRepository;
 import com.teamwork.animalshelter.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,11 +33,12 @@ public class BotService {
     private final ProbationJournalRepository probationJournalRepository;
     private final ProbationRepository probationRepository;
     private final UserService userService;
+    private final SupportRepository supportRepository;
 
     public BotService(TelegramBot telegramBot, AskableServiceObjects askableServiceObjects,
                       AnimalShetlerInfoService animalShetlerInfoService,
                       UserRepository userRepository, ProbationJournalRepository probationJournalRepository,
-                      ProbationRepository probationRepository, UserService userService) {
+                      ProbationRepository probationRepository, UserService userService, SupportRepository supportRepository) {
         this.telegramBot = telegramBot;
         this.askableServiceObjects = askableServiceObjects;
         this.animalShetlerInfoService = animalShetlerInfoService;
@@ -44,6 +46,7 @@ public class BotService {
         this.probationJournalRepository = probationJournalRepository;
         this.probationRepository = probationRepository;
         this.userService = userService;
+        this.supportRepository = supportRepository;
     }
 
     private void verifyResponse(SendResponse response, long chatId) {
@@ -401,10 +404,33 @@ public class BotService {
      * Отправляет волонтерам сообщения с требованием принять решение по испытательному сроку.
      */
     @Scheduled(cron = "0 0 12/24 * * *")
-    void checkFinishProbation() {
+    public void checkFinishProbation() {
         List<Probation> probations = probationRepository.findProbationByDateFinishBeforeAndAndSuccessIsFalseAndResultEquals(LocalDateTime.now(), "");
         if (probations == null) return;
         sendTasksToEmployees(probations, "Следует принять решение по испытательному сроку.");
+    }
+
+    /**
+     * Отправляет волонтерам напоминание о предстоящем событии, но не более чем за 30 минут.
+     */
+    @Scheduled(cron = "0 0/10 * * * *")
+    public void remindAboutEvent() {
+        List<Support> records = supportRepository.findAllByFinishIsFalseAndBeginDateTimeAfter(LocalDateTime.now());
+        if (records == null) return;
+        for (Support support : records) {
+            long minutes = ChronoUnit.MINUTES.between(LocalDateTime.now(), support.getBeginDateTime());
+            if (minutes > 30) continue;
+            String supportType = "";
+            switch (support.getType()) {
+                case CALL -> supportType = "телефонный звонок";
+                case MEETING -> supportType = "встреча";
+                case CHAT -> supportType = "чат";
+            }
+            String message = String.format("У вас назначен(-а) %s через %d минут с пользователем %s.",
+                    supportType, minutes, support.getUser().getName()) +
+                    (support.getType() == SupportType.CALL ? "Телефоны: " + userService.getTelephonesByUser(support.getUser()) : "");
+            sendInfo(message, ProbationDataType.TEXT, support.getVolunteer().getChatId());
+        }
     }
 
 }
