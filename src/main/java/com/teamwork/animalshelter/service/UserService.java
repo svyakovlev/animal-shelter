@@ -255,4 +255,27 @@ public class UserService {
         botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
     }
 
+    /**
+     * Функция реализует команду "Позвать волонтера". Если находится свободный волонтер, и он готов
+     * общаться с пользователем, то запускается чат, в котором бот выступает посредником.
+     * @param userChatId идентификатор чата пользователя
+     * @throws InterruptedException
+     */
+    public void callVolunteer(long userChatId) throws InterruptedException {
+        List<User> volunteers = userRepository.findUsersByVolunteerActiveIsTrue();
+        if (volunteers == null || volunteers.size() == 0) {
+            botService.sendInfo("К сожалению свободных волонтеров нет. Попробуйте связаться позднее.", ProbationDataType.TEXT, userChatId);
+            return;
+        }
+        int minutes = 2;
+        botService.sendInfo(String.format("Идет поиск свободных волонтеров... пожалуйста, подождите... (не более %d минут)", minutes), ProbationDataType.TEXT, userChatId);
+        String message = "Пользователь хочет открыть чат. Кто готов пообщаться?";
+        Long volunteerChatId = startConcurrentQuery(userChatId, volunteers, message, minutes);
+        if (volunteerChatId == null) {
+            botService.sendInfo("К сожалению свободных волонтеров нет. Попробуйте связаться позднее.", ProbationDataType.TEXT, userChatId);
+            return;
+        }
+        botService.createChat(userChatId, volunteerChatId);
+    }
+
 }
