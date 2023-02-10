@@ -205,7 +205,7 @@ public class BotService {
                     }
                 }
             }
-            s = "(для выхода из команды отправьте '0')";
+            //s = "(для выхода из команды отправьте '0')";
             doAction(ask, chatId, s);
             startTime = LocalDateTime.now();
         }
@@ -412,6 +412,7 @@ public class BotService {
 
     /**
      * Отправляет волонтерам напоминание о предстоящем событии, но не более чем за 30 минут.
+     * При этом сотрудник переводится в состояние "Занят".
      */
     @Scheduled(cron = "0 0/10 * * * *")
     public void remindAboutEvent() {
@@ -430,6 +431,12 @@ public class BotService {
                     supportType, minutes, support.getUser().getName()) +
                     (support.getType() == SupportType.CALL ? "Телефоны: " + userService.getTelephonesByUser(support.getUser()) : "");
             sendInfo(message, ProbationDataType.TEXT, support.getVolunteer().getChatId());
+            if (support.getVolunteer().isVolunteerActive()) {
+                User volunteer = support.getVolunteer();
+                volunteer.setVolunteerActive(false);
+                userRepository.save(volunteer);
+                sendInfo("Вы переведены в состояние 'занят'!", ProbationDataType.TEXT, volunteer.getChatId());
+            }
         }
     }
 
