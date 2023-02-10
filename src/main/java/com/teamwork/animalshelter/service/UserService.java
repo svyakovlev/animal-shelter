@@ -194,4 +194,65 @@ public class UserService {
         return result.toString();
     }
 
+    /**
+     * функция реализует решение волонтера окончить испытательный срок.
+     * @param volunteerChatId идентификатор чата волонтера
+     * @throws InterruptedException
+     */
+    public void finishProbationByVolunteer(long volunteerChatId) throws InterruptedException {
+        Map<String, String> questionnaire = botService.startAction("finish_probation", volunteerChatId);
+        if (questionnaire.containsKey("interrupt")) return;
+        Integer clientId = Integer.parseInt(questionnaire.get("client-id"));
+        Integer petId = Integer.parseInt(questionnaire.get("pet-id"));
+        boolean success = questionnaire.get("success").equals("y");
+        String message = questionnaire.get("message");
+
+        Probation probation = probationRepository.getProbationByClientIdAndPetId(clientId, petId).get();
+        if (probation == null) {
+            botService.sendInfo("По указанным идентификаторам пользователя и питомца нет записи по испытательному сроку",
+                    ProbationDataType.TEXT, volunteerChatId);
+            return;
+        }
+        long userChatId = probation.getUser().getChatId();
+        if (success) {
+            String congratulation = String.format("%s, поздравляем с успешным окончанием испытательного срока!", probation.getUser().getName());
+            botService.sendInfo(congratulation, ProbationDataType.TEXT, userChatId);
+            probation.setSuccess(true);
+        } else {
+            String regret = String.format("%s, к сожалению испытательный срок не пройден.\n" + message + "\nПо " +
+                            "дальнейшим вашим шагам с Вами свяжутся.", probation.getUser().getName());
+            botService.sendInfo(regret, ProbationDataType.TEXT, userChatId);
+            probation.setResult(message);
+        }
+        probationRepository.save(probation);
+    }
+
+    /**
+     * функция реализует решение волонтера продлить испытательный срок.
+     * @param volunteerChatId идентификатор чата волонтера
+     * @throws InterruptedException
+     */
+    public void prolongationByVolunteer(long volunteerChatId) throws InterruptedException {
+        Map<String, String> questionnaire = botService.startAction("prolongation", volunteerChatId);
+        if (questionnaire.containsKey("interrupt")) return;
+        Integer clientId = Integer.parseInt(questionnaire.get("client-id"));
+        Integer petId = Integer.parseInt(questionnaire.get("pet-id"));
+        Integer number = Integer.parseInt(questionnaire.get("number"));
+        String message = questionnaire.get("message");
+
+        Probation probation = probationRepository.getProbationByClientIdAndPetId(clientId, petId).get();
+        if (probation == null) {
+            botService.sendInfo("По указанным идентификаторам пользователя и питомца нет записи по испытательному сроку",
+                    ProbationDataType.TEXT, volunteerChatId);
+            return;
+        }
+        long userChatId = probation.getUser().getChatId();
+
+        probation.setDateFinish(probation.getDateFinish().plusDays(number));
+        probationRepository.save(probation);
+        message = String.format("%s, решено продлить ваш испытательный срок на %d дней.\n" + message +
+                "\nНе забывайте отправлять отчет по продленным дням испытательного срока", probation.getUser().getName(), number);
+        botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
+    }
+
 }

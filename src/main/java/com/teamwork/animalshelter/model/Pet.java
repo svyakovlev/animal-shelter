@@ -1,6 +1,8 @@
 package com.teamwork.animalshelter.model;
 
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Set;
 import javax.persistence.*;
 import java.util.Objects;
@@ -21,7 +23,9 @@ public class Pet {
     private Integer id;
     private String nickname;
     private String breed;
-    private Integer age;
+
+    @Column(name = "birthday")
+    private LocalDate birthday;
     private String character;
     @Column(name = "looking_for_owner")
     private Boolean lookingForOwner;
@@ -31,10 +35,10 @@ public class Pet {
 
     public Pet() {}
 
-    public Pet(String nickname, String breed, Integer age, String character, Boolean lookingForOwner) {
+    public Pet(String nickname, String breed, LocalDate birthday, String character, Boolean lookingForOwner) {
         this.nickname = nickname;
         this.breed = breed;
-        this.age = age;
+        this.birthday = birthday;
         this.character = character;
         this.lookingForOwner = lookingForOwner;
     }
@@ -60,12 +64,12 @@ public class Pet {
         this.breed = breed;
     }
 
-    public Integer getAge() {
-        return age;
+    public LocalDate getBirthday() {
+        return birthday;
     }
 
-    public void setAge(Integer age) {
-        this.age = age;
+    public void setBirthday(LocalDate birthday) {
+        this.birthday = birthday;
     }
 
     public String getCharacter() {
@@ -88,12 +92,58 @@ public class Pet {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Pet pet)) return false;
-        return Objects.equals(getId(), pet.getId()) && Objects.equals(getNickname(), pet.getNickname()) && Objects.equals(getBreed(), pet.getBreed()) && Objects.equals(getAge(), pet.getAge()) && Objects.equals(getCharacter(), pet.getCharacter()) && Objects.equals(getLookingForOwner(), pet.getLookingForOwner());
+        return Objects.equals(getId(), pet.getId()) && Objects.equals(getNickname(), pet.getNickname()) && Objects.equals(getBreed(), pet.getBreed()) && Objects.equals(getBirthday(), pet.getBirthday()) && Objects.equals(getCharacter(), pet.getCharacter()) && Objects.equals(getLookingForOwner(), pet.getLookingForOwner());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getNickname(), getBreed(), getAge(), getCharacter(), getLookingForOwner());
+        return Objects.hash(getId(), getNickname(), getBreed(), getBirthday(), getCharacter(), getLookingForOwner());
+    }
+
+    /**
+     * Возвращает возраст питомца в удобном для восприятия формате, если задан день рожления питомца.
+     * @return возраст питомца в формате {@code <x> лет <y> месяцев}. Если день рождения не задан,
+     * тогда возвращается строка {@code "неизвестно"}.
+     */
+    public String getAge() {
+        if (birthday == null) return "неизвестно";
+        long monthsNumberTotal = ChronoUnit.MONTHS.between(birthday, LocalDate.now());
+        if (monthsNumberTotal < 12) return getValueSuffix(monthsNumberTotal, false);
+        long yearsNumber = monthsNumberTotal / 12;
+        long monthsNumber = monthsNumberTotal - 12 * yearsNumber;
+        StringBuilder sb = new StringBuilder(getValueSuffix(yearsNumber, true));
+        sb.append(" ");
+        sb.append(getValueSuffix(monthsNumber, false));
+        return sb.toString();
+    }
+
+    private String getValueSuffix(long value, boolean isYear) {
+        if(isYear) {
+            long number = (value / 10) * 10;
+            switch ((int) (value - number)) {
+                case 1:
+                    return "1 год";
+                case 2:
+                case 3:
+                case 4:
+                    return String.format("%d года", value);
+                default:
+                    return String.format("%d лет", value);
+            }
+        }
+        else {
+            if (value == 0) return "";
+            switch ((int) value) {
+                case 1:
+                    return "1 месяц";
+                case 2:
+                case 3:
+                case 4:
+                    return String.format("%d месяца", value);
+                default:
+                    return String.format("%d месяцев", value);
+            }
+        }
     }
 
     @Override
@@ -102,7 +152,7 @@ public class Pet {
                 "id=" + id +
                 ", nickname='" + nickname + '\'' +
                 ", breed='" + breed + '\'' +
-                ", age=" + age +
+                ", age=" + getAge() +
                 ", character='" + character + '\'' +
                 ", lookingForOwner=" + lookingForOwner +
                 '}';
