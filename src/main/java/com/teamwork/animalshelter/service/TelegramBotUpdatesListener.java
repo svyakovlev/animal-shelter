@@ -42,7 +42,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                 String message = update.message().text();
 
                 if (isCommand(message)) {
-                    new ShetlerThread(chatId, askableServiceObjects, () -> botService.processCommand(message, chatId)).start();
+                    new ShetlerThread(chatId, askableServiceObjects, () -> userService.processCommand(message, chatId)).start();
                 } else {
                     boolean isConcurrentQuery = false;
                     if (message.equals("/+") || message.equalsIgnoreCase("/y") || message.equalsIgnoreCase("/да")) {

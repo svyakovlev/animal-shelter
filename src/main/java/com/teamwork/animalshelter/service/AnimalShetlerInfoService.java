@@ -47,6 +47,9 @@ public class AnimalShetlerInfoService {
     @Value("${shetler.info.recommendations-home-for-handicapped-dog}")
     private String recommendationsHomeForHandicappedDog;
 
+    @Value("${shetler.info.report-pet}")
+    private String petReport;
+
     private Map<String, Map<String, ProbationDataType>> cacheInfo = new HashMap<>();
 
     private  Map<String, ProbationDataType> parseResources(String resources) {
@@ -124,5 +127,9 @@ public class AnimalShetlerInfoService {
 
     public Map<String, ProbationDataType> getRecommendationsHomeForHandicappedDog() {
         return processCache("getRecommendationsHomeForHandicappedDog", recommendationsHomeForHandicappedDog);
+    }
+
+    public Map<String, ProbationDataType> getPetReport() {
+        return processCache("getPetReport", petReport);
     }
 }

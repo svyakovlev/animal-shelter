@@ -11,7 +11,6 @@ import com.teamwork.animalshelter.exception.*;
 import com.teamwork.animalshelter.model.*;
 import com.teamwork.animalshelter.repository.ProbationJournalRepository;
 import com.teamwork.animalshelter.repository.ProbationRepository;
-import com.teamwork.animalshelter.repository.SupportRepository;
 import com.teamwork.animalshelter.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,10 +18,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -93,78 +88,6 @@ public class BotService {
     }
 
     /**
-     * Функция перенаправляет данные, получаемые из класса {@code AnimalShetlerInfoService}
-     *
-     * @param info   карта записей, в которой ключом может быть либо передаваемый текст, либо путь к файлу
-     * @param chatId идентификатор чата
-     * @see AnimalShetlerInfoService
-     * @see ProbationDataType
-     */
-    public void sendShetlerInfoByCommand(Map<String, ProbationDataType> info, long chatId) {
-        if (info == null) return;
-        for (Map.Entry entry : info.entrySet()) {
-            File file = getFileFromResource((String) entry.getKey());
-            if (!file.isFile()) continue;
-            Object infoSending = file;
-            if ((ProbationDataType) entry.getValue() == ProbationDataType.TEXT) {
-                if (!file.getName().matches("^(.+\\.txt)$")) {
-                    logger.error("Error: file resource <{}> was specified as text file (function 'sendShetlerInfoByCommand()')", file.getName());
-                    continue;
-                }
-                try {
-                    List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
-                    infoSending = String.join(System.lineSeparator(), lines);
-                } catch (IOException e) {
-                    logger.error("Read error: <{}> (function 'sendShetlerInfoByCommand()'). <{}>", file.getName(), e.getMessage());
-                    continue;
-                }
-            }
-            sendInfo(infoSending, (ProbationDataType) entry.getValue(), chatId);
-        }
-    }
-
-    private File getFileFromResource(String pathResource) {
-        if (pathResource.isEmpty()) return null;
-        ClassLoader classLoader = getClass().getClassLoader();
-        URL resource = classLoader.getResource(pathResource);
-        if (resource == null) return null;
-        File file = new File(resource.getFile());
-        return file;
-    }
-
-    /**
-     * Осуществляется вызов необходимой функции в зависимости от строкового идентификатора команды.
-     *
-     * @param command идентификатор команды
-     * @param chatId  идентификатор чата
-     */
-    public void runCommands(String command, Long chatId) {
-        switch (command) {
-            case "common_info":
-                sendShetlerInfoByCommand(animalShetlerInfoService.getCommonInfo(), chatId);
-                break;
-            case "contact_info":
-                sendShetlerInfoByCommand(animalShetlerInfoService.getContacts(), chatId);
-                break;
-            case "accident_prevention_info":
-                sendShetlerInfoByCommand(animalShetlerInfoService.getAccidentPrevention(), chatId);
-                break;
-            case "chat":
-                break;
-            case "phone_call":
-                break;
-            case "form_daily_report":
-                break;
-
-
-            case "empty":
-                return;
-            default:
-                throw new NotFoundCommand(command);
-        }
-    }
-
-    /**
      * Функция выполняет переход к следующему вопросу или пукту меню и отправляет вопрос
      * или дочерние пункты меню пользователя для выбора. Также запускается режим ожидания
      * ответа от пользователя.
@@ -193,7 +116,7 @@ public class BotService {
      * ответом пользователя на вопрос с меткой, указанной в {@code key})
      * Возможные значения key:
      * <ul>
-     *     <li>{@code command} - в value находится строковая метка команды, которая используется в функции {@link #runCommands(String, Long)} </li>
+     *     <li>{@code command} - в value находится строковая метка команды, которая используется в функции {@link UserService#runCommands(String, Long)} </li>
      *     <li>{@code interrupt} - value не используется</li>
      *     <li>{@code <строковая метка>} - метка используется, чтобы определить </li>
      * </ul>
@@ -222,7 +145,7 @@ public class BotService {
                         askableServiceObjects.removeResponse(chatId);
                         return resultInterrupted;
                     }
-                    Thread.sleep(10_000);
+                    Thread.sleep(2_000);
                 } else {
                     ask.setWaitingResponse(false);
                     askableServiceObjects.removeResponse(chatId);
@@ -296,49 +219,6 @@ public class BotService {
         message = "Чат остановлен. Всего вам хорошего!";
         sendInfo(message, ProbationDataType.TEXT, employeeChatId);
         sendInfo(message, ProbationDataType.TEXT, userChatId);
-    }
-
-    public void processCommand(String message, long chatId) {
-        try {
-            switch (message) {
-                case "/info":
-                    Map<String, String> result = startAction("menu_info", chatId);
-                    if (result.containsKey("interrupt")) return;
-                    if (result.containsKey("command")) {
-                        runCommands(result.get("command"), chatId);
-                    }
-                    callErrorKeyMap(result, "processMessageText() -> message");
-                    break;
-
-                default:
-
-            }
-
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e.getMessage());
-        }
-    }
-
-    private void callErrorKeyMap(Map<String, String> map, String hint) {
-        String[] keys = (String[]) map.keySet().toArray();
-
-        if (keys.length == 0) {
-            throw new UnknownKey("", hint);
-        } else {
-            throw new UnknownKey(keys[0], hint);
-        }
-    }
-
-    public void sendGreeting(long chatId, LocalDateTime newVisit) {
-        User user = userRepository.findUserByChatId(chatId);
-        if (user != null) {
-            LocalDateTime lastVisit = user.getLastVisit();
-            if (lastVisit == null || lastVisit.toLocalDate().atStartOfDay().compareTo(newVisit.toLocalDate().atStartOfDay()) != 0) {
-                sendInfo(String.format("Добро пожаловать, %s", user.getName()), ProbationDataType.TEXT, chatId);
-            }
-            user.setLastVisit(newVisit);
-            userRepository.saveAndFlush(user);
-        }
     }
 
     /**

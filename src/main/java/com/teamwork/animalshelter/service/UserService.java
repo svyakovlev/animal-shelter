@@ -3,14 +3,23 @@ package com.teamwork.animalshelter.service;
 import com.teamwork.animalshelter.action.AskableServiceObjects;
 import com.teamwork.animalshelter.exception.NotFoundAdministrator;
 import com.teamwork.animalshelter.exception.NotFoundChatId;
+import com.teamwork.animalshelter.exception.NotFoundCommand;
+import com.teamwork.animalshelter.exception.UnknownKey;
 import com.teamwork.animalshelter.model.*;
 import com.teamwork.animalshelter.repository.ContactRepository;
 import com.teamwork.animalshelter.repository.ProbationRepository;
 import com.teamwork.animalshelter.repository.SupportRepository;
 import com.teamwork.animalshelter.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -25,16 +34,21 @@ public class UserService {
     private final ContactRepository contactRepository;
     private final ProbationRepository probationRepository;
     private final SupportRepository supportRepository;
+    private final AnimalShetlerInfoService animalShetlerInfoService;
+
+    private final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     public UserService(BotService botService, AskableServiceObjects askableServiceObjects,
                        UserRepository userRepository, ContactRepository contactRepository,
-                       ProbationRepository probationRepository, SupportRepository supportRepository) {
+                       ProbationRepository probationRepository, SupportRepository supportRepository,
+                       AnimalShetlerInfoService animalShetlerInfoService) {
         this.botService = botService;
         this.askableServiceObjects = askableServiceObjects;
         this.userRepository = userRepository;
         this.contactRepository = contactRepository;
         this.probationRepository = probationRepository;
         this.supportRepository = supportRepository;
+        this.animalShetlerInfoService = animalShetlerInfoService;
     }
 
     public void wantToBecomeVolunteer(long chatId) throws InterruptedException {
@@ -372,6 +386,194 @@ public class UserService {
                 userRepository.save(volunteer);
                 botService.sendInfo("Вы переведены в состояние 'занят'!", ProbationDataType.TEXT, volunteer.getChatId());
             }
+        }
+    }
+
+    public void sendGreeting(long chatId, LocalDateTime newVisit) {
+        User user = userRepository.findUserByChatId(chatId);
+        if (user != null) {
+            LocalDateTime lastVisit = user.getLastVisit();
+            if (lastVisit == null || lastVisit.toLocalDate().atStartOfDay().compareTo(newVisit.toLocalDate().atStartOfDay()) != 0) {
+                botService.sendInfo(String.format("Добро пожаловать, %s", user.getName()), ProbationDataType.TEXT, chatId);
+            }
+            user.setLastVisit(newVisit);
+            userRepository.saveAndFlush(user);
+        }
+    }
+
+    public void processCommand(String message, long chatId) {
+        try {
+            Map<String, String> result = null;
+            switch (message) {
+                case "/info":
+                    result = botService.startAction("menu_info", chatId);
+                    runMenuCommand(result, chatId);
+                    break;
+                case "/consultation":
+                    result = botService.startAction("menu_consultation", chatId);
+                    runMenuCommand(result, chatId);
+                    break;
+                case "/keeping":
+                    result = botService.startAction("menu_keeping_pet", chatId);
+                    runMenuCommand(result, chatId);
+                    break;
+                case "/pet":
+                    result = botService.startAction("menu_choose_pet", chatId);
+                    runMenuCommand(result, chatId);
+                    break;
+                case "/call":
+
+                    break;
+                case "/chat":
+                    callVolunteer(chatId);
+                    break;
+                case "/show":   // показать команды волонтера/админа
+
+                    break;
+                default:
+                    botService.sendInfo("Неизвестная команда. Выберите команду из 'Menu'", ProbationDataType.TEXT, chatId);
+            }
+
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    /**
+     * Функция перенаправляет данные, получаемые из класса {@code AnimalShetlerInfoService}
+     *
+     * @param info   карта записей, в которой ключом может быть либо передаваемый текст, либо путь к файлу
+     * @param chatId идентификатор чата
+     * @see AnimalShetlerInfoService
+     * @see ProbationDataType
+     */
+    public void sendShetlerInfoByCommand(Map<String, ProbationDataType> info, long chatId) {
+        if (info == null) return;
+        for (Map.Entry entry : info.entrySet()) {
+            File file = getFileFromResource((String) entry.getKey());
+            if (!file.isFile()) continue;
+            Object infoSending = file;
+            if ((ProbationDataType) entry.getValue() == ProbationDataType.TEXT) {
+                if (!file.getName().matches("^(.+\\.txt)$")) {
+                    logger.error("Error: file resource <{}> was specified as text file (function 'sendShetlerInfoByCommand()')", file.getName());
+                    continue;
+                }
+                try {
+                    List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
+                    infoSending = String.join(System.lineSeparator(), lines);
+                } catch (IOException e) {
+                    logger.error("Read error: <{}> (function 'sendShetlerInfoByCommand()'). <{}>", file.getName(), e.getMessage());
+                    continue;
+                }
+            }
+            botService.sendInfo(infoSending, (ProbationDataType) entry.getValue(), chatId);
+        }
+    }
+
+    private File getFileFromResource(String pathResource) {
+        if (pathResource.isEmpty()) return null;
+        ClassLoader classLoader = getClass().getClassLoader();
+        URL resource = classLoader.getResource(pathResource);
+        if (resource == null) return null;
+        File file = new File(resource.getFile());
+        return file;
+    }
+
+    /**
+     * Осуществляется вызов необходимой функции в зависимости от строкового идентификатора команды.
+     *
+     * @param command идентификатор команды
+     * @param chatId  идентификатор чата
+     */
+    public void runCommands(String command, Long chatId) throws InterruptedException {
+        switch (command) {
+            case "common_info":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getCommonInfo(), chatId);
+                break;
+            case "contact_info":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getContacts(), chatId);
+                break;
+            case "accident_prevention_info":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getAccidentPrevention(), chatId);
+                break;
+            case "paperwork":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getPaperwork(), chatId);
+                break;
+            case "rules_meet":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getRulesOfFirstContact(), chatId);
+                break;
+            case "transportation":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getTransportationAnimal(), chatId);
+                break;
+            case "cynologist_advices":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getInitialHandlingWithAnimal(), chatId);
+                break;
+            case "cynologist_references":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getCinologistsRecommendations(), chatId);
+                break;
+            case "refusal_causes":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getRefusingReasons(), chatId);
+                break;
+            case "puppy":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getRecommendationsHomeForPuppy(), chatId);
+                break;
+            case "adult_dog":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getRecommendationsHomeForAdultDog(), chatId);
+                break;
+            case "handicapped_dog":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getRecommendationsHomeForHandicappedDog(), chatId);
+                break;
+
+            case "send_report":
+                break;
+            case "send_photo":
+                break;
+            case "form_daily_report":
+                sendShetlerInfoByCommand(animalShetlerInfoService.getPetReport(), chatId);
+                break;
+
+            case "see_pets":
+                break;
+            case "choose_pet":
+                break;
+
+
+            case "chat":
+                callVolunteer(chatId);
+                break;
+            case "phone_call":
+                break;
+
+
+
+            case "empty":
+                botService.sendInfo("Эта команда находится в разработке", ProbationDataType.TEXT, chatId);
+                break;
+            default:
+                throw new NotFoundCommand(command);
+        }
+    }
+
+    private void runMenuCommand(Map<String, String> result, long chatId) {
+        if (result.containsKey("interrupt")) return;
+        if (result.containsKey("command")) {
+            try {
+                runCommands(result.get("command"), chatId);
+            } catch (InterruptedException e) {
+                logger.info(e.getMessage());
+            }
+        } else {
+            callErrorKeyMap(result, "processCommand() -> не найден ожидаемый ключ: " + result.toString());
+        }
+    }
+
+    private void callErrorKeyMap(Map<String, String> map, String hint) {
+        String[] keys = (String[]) map.keySet().toArray();
+
+        if (keys.length == 0) {
+            throw new UnknownKey("", hint);
+        } else {
+            throw new UnknownKey(keys[0], hint);
         }
     }
 
