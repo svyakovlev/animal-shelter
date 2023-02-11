@@ -28,4 +28,4 @@ public interface ProbationRepository extends JpaRepository<Probation, Integer> {
             nativeQuery = true)
     List<Probation> getProbationsOnReportProblem();
 
-    List<Probation> findProbationByDateFinishBeforeAndAndSuccessIsFalseAndResultEquals(LocalDateTime currentDate, String result);}
+    List<Probation> findProbationByDateFinishBeforeAndSuccessIsFalseAndResultEquals(LocalDateTime currentDate, String result);}

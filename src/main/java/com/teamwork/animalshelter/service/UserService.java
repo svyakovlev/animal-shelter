@@ -67,7 +67,7 @@ public class UserService {
 
         List<User> freeAdministrators = userRepository.findUsersByAdministratorIsTrueAndVolunteerActiveIsTrue();
 
-        String message = String.format("Пользователь %s хочеть стать волонтером. Возьмете в работу?", user.getName() );
+        String message = "";
         if (freeAdministrators == null) {
             message = "Нет свободных администраторов. Закажите обратный звонок.";
             botService.sendInfo(message, ProbationDataType.TEXT, chatId);
@@ -77,6 +77,7 @@ public class UserService {
         message = "Идет поиск свободных администраторов. Пожалуйста, подождите... (время ожидания не более 5 минут)";
         botService.sendInfo(message, ProbationDataType.TEXT, chatId);
 
+        message = String.format("Пользователь %s хочеть стать волонтером. Возьмете в работу?", user.getName() );
         Long administratorChatId = startConcurrentQuery(chatId, freeAdministrators, message, 5);
 
         if (administratorChatId == null) {
@@ -339,7 +340,7 @@ public class UserService {
      */
     @Scheduled(cron = "0 0 12/24 * * *")
     public void checkFinishProbation() {
-        List<Probation> probations = probationRepository.findProbationByDateFinishBeforeAndAndSuccessIsFalseAndResultEquals(LocalDateTime.now(), "");
+        List<Probation> probations = probationRepository.findProbationByDateFinishBeforeAndSuccessIsFalseAndResultEquals(LocalDateTime.now(), "");
         if (probations == null) return;
         sendTasksToEmployees(probations, "Следует принять решение по испытательному сроку.");
     }
