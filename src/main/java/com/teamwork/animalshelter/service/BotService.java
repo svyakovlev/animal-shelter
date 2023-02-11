@@ -1,14 +1,13 @@
 package com.teamwork.animalshelter.service;
 
 import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.request.SendDocument;
 import com.pengrad.telegrambot.request.SendMessage;
+import com.pengrad.telegrambot.request.SendPhoto;
 import com.pengrad.telegrambot.response.SendResponse;
 import com.teamwork.animalshelter.action.Askable;
 import com.teamwork.animalshelter.action.AskableServiceObjects;
-import com.teamwork.animalshelter.exception.AskableNullPointer;
-import com.teamwork.animalshelter.exception.NotFoundAdministrator;
-import com.teamwork.animalshelter.exception.NotFoundCommand;
-import com.teamwork.animalshelter.exception.UnknownKey;
+import com.teamwork.animalshelter.exception.*;
 import com.teamwork.animalshelter.model.*;
 import com.teamwork.animalshelter.repository.ProbationJournalRepository;
 import com.teamwork.animalshelter.repository.ProbationRepository;
@@ -19,6 +18,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -66,11 +70,15 @@ public class BotService {
     }
 
     private void sendPhotoInfo(Object object, long chatId) {
-
+        SendPhoto sendPhoto = new SendPhoto(chatId, (File) object);
+        SendResponse response = telegramBot.execute(sendPhoto);
+        verifyResponse(response, chatId);
     }
 
     private void sendDocumentInfo(Object object, long chatId) {
-
+        SendDocument sendDocument = new SendDocument(chatId, (File) object);
+        SendResponse response = telegramBot.execute(sendDocument);
+        verifyResponse(response, chatId);
     }
 
     /**
@@ -99,11 +107,33 @@ public class BotService {
     public void sendShetlerInfoByCommand(Map<String, ProbationDataType> info, long chatId) {
         if (info == null) return;
         for (Map.Entry entry : info.entrySet()) {
-            // Здесь следует получить файлы File
-            // и для *.txt достать текст
-            // и отправлять вместо entry.getKey()
-            sendInfo(entry.getKey(), (ProbationDataType) entry.getValue(), chatId);
+            File file = getFileFromResource((String) entry.getKey());
+            if (!file.isFile()) continue;
+            Object infoSending = file;
+            if ((ProbationDataType) entry.getValue() == ProbationDataType.TEXT) {
+                if (!file.getName().matches("^(.+\\.txt)$")) {
+                    logger.error("Error: file resource <{}> was specified as text file (function 'sendShetlerInfoByCommand()')", file.getName());
+                    continue;
+                }
+                try {
+                    List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
+                    infoSending = String.join(System.lineSeparator(), lines);
+                } catch (IOException e) {
+                    logger.error("Read error: <{}> (function 'sendShetlerInfoByCommand()'). <{}>", file.getName(), e.getMessage());
+                    continue;
+                }
+            }
+            sendInfo(infoSending, (ProbationDataType) entry.getValue(), chatId);
         }
+    }
+
+    private File getFileFromResource(String pathResource) {
+        if (pathResource.isEmpty()) return null;
+        ClassLoader classLoader = getClass().getClassLoader();
+        URL resource = classLoader.getResource(pathResource);
+        if (resource == null) return null;
+        File file = new File(resource.getFile());
+        return file;
     }
 
     /**
@@ -224,7 +254,8 @@ public class BotService {
      * между сотрудником и пользователем. Интервал ожидания новых сообщений задается
      * в переменной {@code intervalWaiting} (в минутах). Если этот интервал превышен, то чат будет закрыт.
      * Отсчет времени бездействия начинается после отправки последнего сообщения.
-     * @param userChatId идентификатор чата пользователя
+     *
+     * @param userChatId     идентификатор чата пользователя
      * @param employeeChatId идентификатор чата сотрудника
      */
     public void createChat(long userChatId, long employeeChatId) throws InterruptedException {
@@ -287,7 +318,7 @@ public class BotService {
 
             }
 
-        } catch(InterruptedException e) {
+        } catch (InterruptedException e) {
             throw new RuntimeException(e.getMessage());
         }
     }
@@ -302,12 +333,12 @@ public class BotService {
         }
     }
 
-    public void sendGreeting(long chatId, LocalDateTime newVisit ) {
-       User user=userRepository.findUserByChatId(chatId);
+    public void sendGreeting(long chatId, LocalDateTime newVisit) {
+        User user = userRepository.findUserByChatId(chatId);
         if (user != null) {
             LocalDateTime lastVisit = user.getLastVisit();
-            if (lastVisit == null||lastVisit.toLocalDate().atStartOfDay().compareTo(newVisit.toLocalDate().atStartOfDay())!=0) {
-                sendInfo(String.format("Добро пожаловать, %s",user.getName()),ProbationDataType.TEXT,chatId);
+            if (lastVisit == null || lastVisit.toLocalDate().atStartOfDay().compareTo(newVisit.toLocalDate().atStartOfDay()) != 0) {
+                sendInfo(String.format("Добро пожаловать, %s", user.getName()), ProbationDataType.TEXT, chatId);
             }
             user.setLastVisit(newVisit);
             userRepository.saveAndFlush(user);
@@ -326,7 +357,7 @@ public class BotService {
      */
     @Scheduled(cron = "* * 9-20/2 * * *")
     public void remindAboutReport() {
-        List<ProbationJournal> records =  probationJournalRepository.getJournalRecordsOnIncompleteReport();
+        List<ProbationJournal> records = probationJournalRepository.getJournalRecordsOnIncompleteReport();
         if (records == null) return;
         Probation probation = null;
         String message;
@@ -366,6 +397,7 @@ public class BotService {
      * посылать отчеты по питомцу. Отправка сообщения происходит в том случае, если
      * клиент не посылал отчеты более 2-х суток (расчет интервала идет от полуночи текущего дня
      * в обратную сторону).
+     *
      * @throws NotFoundAdministrator вызывается в случае, когда в базе нет ни одного администратора.
      */
     @Scheduled(cron = "0 0 9/24 * * *")
