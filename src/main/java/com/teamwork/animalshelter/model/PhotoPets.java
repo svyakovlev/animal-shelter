@@ -15,8 +15,6 @@ public class PhotoPets {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-    @Column(name = "pet_id")
-    private Integer petId;
     private String photo;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -32,28 +30,14 @@ public class PhotoPets {
     }
 
 
-    public PhotoPets(Integer id, Integer petId, String photo) {
-        this.id = id;
-        this.petId = petId;
+    public PhotoPets(String photo) {
         this.photo = photo;
-
     }
 
-    public PhotoPets() {
-
-    }
+    public PhotoPets() {}
 
     public Integer getId() {
         return id;
-    }
-
-
-    public Integer getPetId() {
-        return petId;
-    }
-
-    public void setPetId(Integer petId) {
-        this.petId = petId;
     }
 
     public String getPhoto() {
@@ -68,22 +52,20 @@ public class PhotoPets {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof PhotoPets photoPets)) return false;
-        return Objects.equals(getId(), photoPets.getId()) && Objects.equals(getPetId(), photoPets.getPetId()) && Objects.equals(getPhoto(), photoPets.getPhoto());
+        return Objects.equals(getId(), photoPets.getId()) && Objects.equals(getPhoto(), photoPets.getPhoto());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getPetId(), getPhoto());
+        return Objects.hash(getId(), getPhoto());
     }
 
     @Override
     public String toString() {
         return "PhotoPets{" +
                 "id=" + id +
-                ", petId=" + petId +
+                ", petId=" + pet.getId() +
                 ", photo='" + photo + '\'' +
                 '}';
     }
-
-
 }

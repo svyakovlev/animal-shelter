@@ -1,24 +1,31 @@
 package com.teamwork.animalshelter.service;
 
 import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.request.SendDocument;
 import com.pengrad.telegrambot.request.SendMessage;
+import com.pengrad.telegrambot.request.SendPhoto;
 import com.pengrad.telegrambot.response.SendResponse;
 import com.teamwork.animalshelter.action.Askable;
 import com.teamwork.animalshelter.action.AskableServiceObjects;
-import com.teamwork.animalshelter.exception.AskableNullPointer;
-import com.teamwork.animalshelter.exception.NotFoundCommand;
-import com.teamwork.animalshelter.exception.UnknownKey;
-import com.teamwork.animalshelter.model.ProbationDataType;
-import com.teamwork.animalshelter.model.User;
+import com.teamwork.animalshelter.exception.*;
+import com.teamwork.animalshelter.model.*;
+import com.teamwork.animalshelter.repository.ProbationJournalRepository;
+import com.teamwork.animalshelter.repository.ProbationRepository;
+import com.teamwork.animalshelter.repository.SupportRepository;
 import com.teamwork.animalshelter.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class BotService {
@@ -27,13 +34,19 @@ public class BotService {
     private final AskableServiceObjects askableServiceObjects;
     private final AnimalShetlerInfoService animalShetlerInfoService;
     private final UserRepository userRepository;
+    private final ProbationJournalRepository probationJournalRepository;
+    private final ProbationRepository probationRepository;
 
-    public BotService(TelegramBot telegramBot, AskableServiceObjects askableServiceObjects, AnimalShetlerInfoService animalShetlerInfoService,
-                      UserRepository userRepository) {
+    public BotService(TelegramBot telegramBot, AskableServiceObjects askableServiceObjects,
+                      AnimalShetlerInfoService animalShetlerInfoService,
+                      UserRepository userRepository, ProbationJournalRepository probationJournalRepository,
+                      ProbationRepository probationRepository) {
         this.telegramBot = telegramBot;
         this.askableServiceObjects = askableServiceObjects;
         this.animalShetlerInfoService = animalShetlerInfoService;
         this.userRepository = userRepository;
+        this.probationJournalRepository = probationJournalRepository;
+        this.probationRepository = probationRepository;
     }
 
     private void verifyResponse(SendResponse response, long chatId) {
@@ -53,11 +66,15 @@ public class BotService {
     }
 
     private void sendPhotoInfo(Object object, long chatId) {
-
+        SendPhoto sendPhoto = new SendPhoto(chatId, (File) object);
+        SendResponse response = telegramBot.execute(sendPhoto);
+        verifyResponse(response, chatId);
     }
 
     private void sendDocumentInfo(Object object, long chatId) {
-
+        SendDocument sendDocument = new SendDocument(chatId, (File) object);
+        SendResponse response = telegramBot.execute(sendDocument);
+        verifyResponse(response, chatId);
     }
 
     /**
@@ -86,8 +103,33 @@ public class BotService {
     public void sendShetlerInfoByCommand(Map<String, ProbationDataType> info, long chatId) {
         if (info == null) return;
         for (Map.Entry entry : info.entrySet()) {
-            sendInfo(entry.getKey(), (ProbationDataType) entry.getValue(), chatId);
+            File file = getFileFromResource((String) entry.getKey());
+            if (!file.isFile()) continue;
+            Object infoSending = file;
+            if ((ProbationDataType) entry.getValue() == ProbationDataType.TEXT) {
+                if (!file.getName().matches("^(.+\\.txt)$")) {
+                    logger.error("Error: file resource <{}> was specified as text file (function 'sendShetlerInfoByCommand()')", file.getName());
+                    continue;
+                }
+                try {
+                    List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
+                    infoSending = String.join(System.lineSeparator(), lines);
+                } catch (IOException e) {
+                    logger.error("Read error: <{}> (function 'sendShetlerInfoByCommand()'). <{}>", file.getName(), e.getMessage());
+                    continue;
+                }
+            }
+            sendInfo(infoSending, (ProbationDataType) entry.getValue(), chatId);
         }
+    }
+
+    private File getFileFromResource(String pathResource) {
+        if (pathResource.isEmpty()) return null;
+        ClassLoader classLoader = getClass().getClassLoader();
+        URL resource = classLoader.getResource(pathResource);
+        if (resource == null) return null;
+        File file = new File(resource.getFile());
+        return file;
     }
 
     /**
@@ -111,6 +153,12 @@ public class BotService {
                 break;
             case "phone_call":
                 break;
+            case "form_daily_report":
+                break;
+
+
+            case "empty":
+                return;
             default:
                 throw new NotFoundCommand(command);
         }
@@ -190,7 +238,7 @@ public class BotService {
                     }
                 }
             }
-            s = "(для выхода из команды отправьте '0')";
+            //s = "(для выхода из команды отправьте '0')";
             doAction(ask, chatId, s);
             startTime = LocalDateTime.now();
         }
@@ -202,10 +250,11 @@ public class BotService {
      * между сотрудником и пользователем. Интервал ожидания новых сообщений задается
      * в переменной {@code intervalWaiting} (в минутах). Если этот интервал превышен, то чат будет закрыт.
      * Отсчет времени бездействия начинается после отправки последнего сообщения.
-     * @param userChatId идентификатор чата пользователя
+     *
+     * @param userChatId     идентификатор чата пользователя
      * @param employeeChatId идентификатор чата сотрудника
      */
-    public void createChat(long userChatId, long employeeChatId) {
+    public void createChat(long userChatId, long employeeChatId) throws InterruptedException {
         final int intervalWaiting = 10;
 
         askableServiceObjects.resetQueueChat(userChatId);
@@ -222,7 +271,6 @@ public class BotService {
         boolean chatStopped = false;
 
         while (minutesPassed < intervalWaiting) {
-            if (Thread.currentThread().isInterrupted()) return;
             while (!askableServiceObjects.isEmptyQueue(userChatId)) {
                 message = askableServiceObjects.getMessageFromQueueChat(userChatId);
                 sendInfo(message, ProbationDataType.TEXT, employeeChatId);
@@ -238,6 +286,8 @@ public class BotService {
                 startTime = LocalDateTime.now();
             }
             if (chatStopped) break;
+            Thread.sleep(10_000);
+            if (Thread.currentThread().isInterrupted()) return;
             minutesPassed = ChronoUnit.MINUTES.between(startTime, LocalDateTime.now());
         }
         askableServiceObjects.resetServiceObjects(userChatId);
@@ -248,7 +298,7 @@ public class BotService {
         sendInfo(message, ProbationDataType.TEXT, userChatId);
     }
 
-    public void processMessageText(String message, long chatId) {
+    public void processCommand(String message, long chatId) {
         try {
             switch (message) {
                 case "/info":
@@ -264,7 +314,7 @@ public class BotService {
 
             }
 
-        } catch(InterruptedException e) {
+        } catch (InterruptedException e) {
             throw new RuntimeException(e.getMessage());
         }
     }
@@ -279,15 +329,63 @@ public class BotService {
         }
     }
 
-    public void sendGreeting(long chatId, LocalDateTime newVisit ) {
-       User user=userRepository.findUserByChatId(chatId);
+    public void sendGreeting(long chatId, LocalDateTime newVisit) {
+        User user = userRepository.findUserByChatId(chatId);
         if (user != null) {
             LocalDateTime lastVisit = user.getLastVisit();
-            if (lastVisit == null||lastVisit.toLocalDate().atStartOfDay().compareTo(newVisit.toLocalDate().atStartOfDay())!=0) {
-                sendInfo(String.format("Добро пожаловать, %s",user.getName()),ProbationDataType.TEXT,chatId);
+            if (lastVisit == null || lastVisit.toLocalDate().atStartOfDay().compareTo(newVisit.toLocalDate().atStartOfDay()) != 0) {
+                sendInfo(String.format("Добро пожаловать, %s", user.getName()), ProbationDataType.TEXT, chatId);
             }
             user.setLastVisit(newVisit);
             userRepository.saveAndFlush(user);
         }
     }
+
+    /**
+     * Функция выполняет отправку напоминания клиенту в случае, если он отправил либо только форму отчета,
+     * либо только фотографии питомца. Напоминания приходят только в день отправки документов.
+     * <ul>
+     *     Выполняются следующие проверки записей журнала ({@link ProbationJournal}
+     *     <li>полученные записи находятся в интервале с полуночи текущего дня до текущей даты минус 1 час</li>
+     *     <li>клиент находится на испытательном сроке </li>
+     *     <li>было отправлено только что-то одно: форма отчета или фотографии</li>
+     * </ul>
+     */
+    @Scheduled(cron = "* * 9-20/2 * * *")
+    public void remindAboutReport() {
+        List<ProbationJournal> records = probationJournalRepository.getJournalRecordsOnIncompleteReport();
+        if (records == null) return;
+        Probation probation = null;
+        String message;
+        LocalDateTime currentDate = LocalDateTime.now();
+        for (ProbationJournal record : records) {
+            if (!(record.isPhotoReceived() ^ record.isReportReceived())) continue;
+            probation = record.getProbation();
+            if (currentDate.isAfter(probation.getDateBegin()) && currentDate.isBefore(probation.getDateFinish())) {
+                User user = probation.getUser();
+                Pet pet = probation.getPet();
+                if (record.isPhotoReceived())
+                    message = String.format("%s, напоминаем Вам, что сегодня необходимо еще отправить заполненную форму отчета по питомцу '%s'!", user.getName(), pet.getNickname());
+                else
+                    message = String.format("%s, напоминаем Вам, что сегодня необходимо еще отправить фотографии питомца '%s'!", user.getName(), pet.getNickname());
+                sendInfo(message, ProbationDataType.TEXT, user.getChatId());
+            }
+        }
+    }
+
+    /**
+     * Отправляет сообщение пользователю, котоое было подготовлено сотрудником.
+     */
+    @Scheduled(cron = "0 0 0/1 * * *")
+    public void sendMessageOnProbation() {
+        List<Probation> probations = probationRepository.getActiveProbationsWithMessages();
+        if (probations == null) return;
+        String message = "Вам сообщение от сотрудника приюта.\n";
+        for (Probation probation : probations) {
+            sendInfo(message + probation.getMessage(), ProbationDataType.TEXT, probation.getUser().getChatId());
+            probation.setMessage("");
+            probationRepository.saveAndFlush(probation);
+        }
+    }
+
 }

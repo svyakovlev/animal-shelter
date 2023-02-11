@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<Menu name="menu_choose_pet" interval="5">
+    <ItemMenu label="1" name="1. Посмотреть варианты" command="see_pets"/>
+    <ItemMenu label="2" name="2. Фильтр">
+        <ItemMenu label="1" name="1. Установить фильтр" command="empty"/>
+        <ItemMenu label="2" name="2. Посмотреть фильтр" command="empty"/>
+        <ItemMenu label="3" name="3. Сбросить фильтр" command="empty"/>
+    </ItemMenu>
+    <ItemMenu label="3" name="3. Оформить питомца" command="choose_pet"/>
+    <ItemMenu label="4" name="4. Позвать волонтера" command="chat"/>
+    <ItemMenu label="5" name="5. Заказать обратный звонок" command="phone_call"/>
+</Menu>

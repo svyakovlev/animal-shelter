@@ -20,6 +20,7 @@ public class User {
     private boolean volunteerActive;
 
     private boolean administrator;
+    @Column(name = "chat_id")
     private long chatId;
 
     @Column(name = "last_visit")
@@ -28,13 +29,13 @@ public class User {
     @Column(name = "time_zone")
     private String timeZone;
 
-    @OneToMany(mappedBy = "client")
+    @OneToMany(mappedBy = "user")
     private Set<Contact> contacts;
 
-    @OneToMany(mappedBy = "client")
+    @OneToMany(mappedBy = "user")
     private Set<Support> supportRecordsByUser;
 
-    @OneToMany(mappedBy = "client")
+    @OneToMany(mappedBy = "volunteer")
     private Set<Support> supportRecordsByVolunteer;
 
     public User() {}
@@ -102,6 +103,30 @@ public class User {
 
     public void setLastVisit(LocalDateTime lastVisit) {
         this.lastVisit = lastVisit;
+    }
+
+    public Set<Contact> getContacts() {
+        return contacts;
+    }
+
+    public void setContacts(Set<Contact> contacts) {
+        this.contacts = contacts;
+    }
+
+    public Set<Support> getSupportRecordsByUser() {
+        return supportRecordsByUser;
+    }
+
+    public void setSupportRecordsByUser(Set<Support> supportRecordsByUser) {
+        this.supportRecordsByUser = supportRecordsByUser;
+    }
+
+    public Set<Support> getSupportRecordsByVolunteer() {
+        return supportRecordsByVolunteer;
+    }
+
+    public void setSupportRecordsByVolunteer(Set<Support> supportRecordsByVolunteer) {
+        this.supportRecordsByVolunteer = supportRecordsByVolunteer;
     }
 
     public String getTimeZone() {

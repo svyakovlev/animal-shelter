@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<Menu name="menu_keeping_pet" interval="5">
+    <ItemMenu label="1" name="1. Получить форму ежедневного отчета" command="form_daily_report"/>
+    <ItemMenu label="2" name="2. Отправить документы">
+        <ItemMenu label="1" name="1. Отправить отчет" command="send_report"/>
+        <ItemMenu label="2" name="2. Отправить фотографии" command="send_photo"/>
+    </ItemMenu>
+    <ItemMenu label="3" name="3. Позвать волонтера" command="chat"/>
+    <ItemMenu label="4" name="4. Заказать обратный звонок" command="phone_call"/>
+</Menu>
