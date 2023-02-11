@@ -99,6 +99,9 @@ public class BotService {
     public void sendShetlerInfoByCommand(Map<String, ProbationDataType> info, long chatId) {
         if (info == null) return;
         for (Map.Entry entry : info.entrySet()) {
+            // Здесь следует получить файлы File
+            // и для *.txt достать текст
+            // и отправлять вместо entry.getKey()
             sendInfo(entry.getKey(), (ProbationDataType) entry.getValue(), chatId);
         }
     }
@@ -126,6 +129,10 @@ public class BotService {
                 break;
             case "form_daily_report":
                 break;
+
+
+            case "empty":
+                return;
             default:
                 throw new NotFoundCommand(command);
         }
@@ -264,7 +271,7 @@ public class BotService {
         sendInfo(message, ProbationDataType.TEXT, userChatId);
     }
 
-    public void processMessageText(String message, long chatId) {
+    public void processCommand(String message, long chatId) {
         try {
             switch (message) {
                 case "/info":
