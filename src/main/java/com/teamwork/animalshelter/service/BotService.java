@@ -209,7 +209,7 @@ public class BotService {
                 startTime = LocalDateTime.now();
             }
             if (chatStopped) break;
-            Thread.sleep(10_000);
+            Thread.sleep(2_000);
             if (Thread.currentThread().isInterrupted()) return;
             minutesPassed = ChronoUnit.MINUTES.between(startTime, LocalDateTime.now());
         }

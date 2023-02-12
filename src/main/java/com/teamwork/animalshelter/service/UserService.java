@@ -1,6 +1,7 @@
 package com.teamwork.animalshelter.service;
 
 import com.teamwork.animalshelter.action.AskableServiceObjects;
+import com.teamwork.animalshelter.configuration.AnimalShetlerProperties;
 import com.teamwork.animalshelter.exception.NotFoundAdministrator;
 import com.teamwork.animalshelter.exception.NotFoundChatId;
 import com.teamwork.animalshelter.exception.NotFoundCommand;
@@ -35,13 +36,14 @@ public class UserService {
     private final ProbationRepository probationRepository;
     private final SupportRepository supportRepository;
     private final AnimalShetlerInfoService animalShetlerInfoService;
+    private final AnimalShetlerProperties animalShetlerProperties;
 
     private final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     public UserService(BotService botService, AskableServiceObjects askableServiceObjects,
                        UserRepository userRepository, ContactRepository contactRepository,
                        ProbationRepository probationRepository, SupportRepository supportRepository,
-                       AnimalShetlerInfoService animalShetlerInfoService) {
+                       AnimalShetlerInfoService animalShetlerInfoService, AnimalShetlerProperties animalShetlerProperties) {
         this.botService = botService;
         this.askableServiceObjects = askableServiceObjects;
         this.userRepository = userRepository;
@@ -49,6 +51,7 @@ public class UserService {
         this.probationRepository = probationRepository;
         this.supportRepository = supportRepository;
         this.animalShetlerInfoService = animalShetlerInfoService;
+        this.animalShetlerProperties = animalShetlerProperties;
     }
 
     public void wantToBecomeVolunteer(long chatId) throws InterruptedException {
@@ -575,6 +578,15 @@ public class UserService {
         } else {
             throw new UnknownKey(keys[0], hint);
         }
+    }
+
+    public void getDataReport(long userChatId, ProbationDataType type) {
+//        Map<String, String> questionnaire = botService.startAction("prolongation", volunteerChatId);
+//        if (questionnaire.containsKey("interrupt")) return;
+//        Integer clientId = Integer.parseInt(questionnaire.get("client-id"));
+//        Integer petId = Integer.parseInt(questionnaire.get("pet-id"));
+//        Integer number = Integer.parseInt(questionnaire.get("number"));
+//        String message = questionnaire.get("message");
     }
 
 }
