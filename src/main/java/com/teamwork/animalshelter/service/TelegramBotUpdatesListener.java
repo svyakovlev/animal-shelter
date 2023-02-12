@@ -42,18 +42,21 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
             if (update.message() != null) {
                 long chatId = update.message().chat().id();
                 if (update.message().text() == null) {
-                    String file_id = null;
+                    String file_id = "";
+                    String file_name = "";
                     if (update.message().document() != null) {
                         file_id = update.message().document().fileId();
+                        file_name = update.message().document().fileName();
                     } else if (update.message().photo() != null) {
                         PhotoSize[] photoSizes = update.message().photo();
                         file_id = photoSizes[photoSizes.length -1].fileId();
+                        file_name = photoSizes[photoSizes.length -1].fileUniqueId() + ".jpg";
                     }
                     if (askableServiceObjects.isChatIdForResponse(chatId)) {
-                        askableServiceObjects.addResponse(chatId, file_id);
+                        askableServiceObjects.addResponse(chatId, file_id + "::" + file_name);
                     } else {
                         botService.sendInfo("Отправленный файл или фото не могут быть обработаны " +
-                                        "(отправлять файлы следует только по запросу команды. \nВыберите команду из 'Menu'",
+                                "(отправлять файлы следует только по запросу команды. \nВыберите команду из 'Menu'",
                                 ProbationDataType.TEXT, chatId);
                     }
 

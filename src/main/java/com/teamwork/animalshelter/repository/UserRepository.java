@@ -13,7 +13,7 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
-    User findUserByChatId(Long chatId);
+    Optional<User> findUserByChatId(Long chatId);
 
     List<User> findUsersByAdministratorIsTrueAndVolunteerActiveIsTrue();
 

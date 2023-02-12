@@ -3,13 +3,14 @@ package com.teamwork.animalshelter.model;
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Этот класс хранит в себе данные о журналах (отчетах) усыновителей находящихся на испытательном сроке:
  * @probation_id - id испытательного срока;
  * @date - дата записи в журнале;
- * @photo_recievid - статус наличия фото в журнале;
- * @report_recieved - статус наличия отчета в журнале.
+ * @photo_received - статус наличия фото в журнале;
+ * @report_received - статус наличия отчета в журнале.
  */
 
 @Entity
@@ -32,6 +33,9 @@ public class ProbationJournal {
     @Column(name = "report_received")
     private boolean reportReceived;
 
+    @OneToMany(mappedBy = "probationJournal")
+    private Set<ProbationData> probationDataSet;
+
     public ProbationJournal() {}
 
     public ProbationJournal(LocalDateTime date, boolean photoReceived, boolean reportReceived) {
@@ -52,7 +56,7 @@ public class ProbationJournal {
         return probation;
     }
 
-    public void setProbationId(Probation probation) {
+    public void setProbation(Probation probation) {
         this.probation = probation;
     }
 
@@ -78,6 +82,14 @@ public class ProbationJournal {
 
     public void setReportReceived(boolean reportReceived) {
         this.reportReceived = reportReceived;
+    }
+
+    public Set<ProbationData> getProbationDataSet() {
+        return probationDataSet;
+    }
+
+    public void setProbationDataSet(Set<ProbationData> probationDataSet) {
+        this.probationDataSet = probationDataSet;
     }
 
     @Override

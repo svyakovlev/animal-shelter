@@ -1,5 +1,10 @@
 package com.teamwork.animalshelter.service;
 
+import com.fasterxml.jackson.databind.util.JSONPObject;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.pengrad.telegrambot.TelegramBot;
 import com.teamwork.animalshelter.action.AskableServiceObjects;
 import com.teamwork.animalshelter.configuration.AnimalShetlerProperties;
 import com.teamwork.animalshelter.exception.NotFoundAdministrator;
@@ -7,43 +12,47 @@ import com.teamwork.animalshelter.exception.NotFoundChatId;
 import com.teamwork.animalshelter.exception.NotFoundCommand;
 import com.teamwork.animalshelter.exception.UnknownKey;
 import com.teamwork.animalshelter.model.*;
-import com.teamwork.animalshelter.repository.ContactRepository;
-import com.teamwork.animalshelter.repository.ProbationRepository;
-import com.teamwork.animalshelter.repository.SupportRepository;
-import com.teamwork.animalshelter.repository.UserRepository;
+import com.teamwork.animalshelter.repository.*;
+import org.apache.tomcat.util.http.fileupload.FileUtils;
+import org.aspectj.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
+
 @Service
 public class UserService {
-
-    private BotService botService;
-    private AskableServiceObjects askableServiceObjects;
-
+    private final BotService botService;
+    private final AskableServiceObjects askableServiceObjects;
     private final UserRepository userRepository;
     private final ContactRepository contactRepository;
     private final ProbationRepository probationRepository;
     private final SupportRepository supportRepository;
     private final AnimalShetlerInfoService animalShetlerInfoService;
     private final AnimalShetlerProperties animalShetlerProperties;
+    private final ProbationJournalRepository probationJournalRepository;
+
+    private final TelegramBot telegramBot;
 
     private final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     public UserService(BotService botService, AskableServiceObjects askableServiceObjects,
                        UserRepository userRepository, ContactRepository contactRepository,
                        ProbationRepository probationRepository, SupportRepository supportRepository,
-                       AnimalShetlerInfoService animalShetlerInfoService, AnimalShetlerProperties animalShetlerProperties) {
+                       AnimalShetlerInfoService animalShetlerInfoService, AnimalShetlerProperties animalShetlerProperties,
+                       ProbationJournalRepository probationJournalRepository, TelegramBot telegramBot) {
         this.botService = botService;
         this.askableServiceObjects = askableServiceObjects;
         this.userRepository = userRepository;
@@ -52,6 +61,8 @@ public class UserService {
         this.supportRepository = supportRepository;
         this.animalShetlerInfoService = animalShetlerInfoService;
         this.animalShetlerProperties = animalShetlerProperties;
+        this.probationJournalRepository = probationJournalRepository;
+        this.telegramBot = telegramBot;
     }
 
     public void wantToBecomeVolunteer(long chatId) throws InterruptedException {
@@ -155,7 +166,7 @@ public class UserService {
     }
 
     private User findUserByChatId(long chatId) {
-        return userRepository.findUserByChatId(chatId);
+        return userRepository.findUserByChatId(chatId).get();
     }
 
     private User findUserByPhoneNumber(String phoneNumber) {
@@ -393,7 +404,7 @@ public class UserService {
     }
 
     public void sendGreeting(long chatId, LocalDateTime newVisit) {
-        User user = userRepository.findUserByChatId(chatId);
+        User user = userRepository.findUserByChatId(chatId).get();
         if (user != null) {
             LocalDateTime lastVisit = user.getLastVisit();
             if (lastVisit == null || lastVisit.toLocalDate().atStartOfDay().compareTo(newVisit.toLocalDate().atStartOfDay()) != 0) {
@@ -580,13 +591,104 @@ public class UserService {
         }
     }
 
-    public void getDataReport(long userChatId, ProbationDataType type) {
-//        Map<String, String> questionnaire = botService.startAction("prolongation", volunteerChatId);
-//        if (questionnaire.containsKey("interrupt")) return;
-//        Integer clientId = Integer.parseInt(questionnaire.get("client-id"));
-//        Integer petId = Integer.parseInt(questionnaire.get("pet-id"));
-//        Integer number = Integer.parseInt(questionnaire.get("number"));
-//        String message = questionnaire.get("message");
+    private boolean downloadFileFromTG(String fileId, String relativePath, long userChatId) {
+        try {
+            String filePath = animalShetlerProperties.getPathStorage();
+            if (filePath.isEmpty()) {
+                String message = "Не задан путь к хранилищу. Свяжитесь с администратором";
+                logger.error("Не задан путь к хранилищу");
+                botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
+                return false;
+            }
+            File dir = new File(filePath);
+            if (!dir.exists()) {
+                String message = "Путь к хранилищу задан с ошибкой. Свяжитесь с администратором";
+                logger.error("Путь к хранилищу не существует");
+                botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
+                return false;
+            }
+
+            Path file = new File(filePath + relativePath).toPath();
+            Files.createDirectories(file.getParent());
+            Files.deleteIfExists(file);
+
+            URL urlGettingPath = new URL("https://api.telegram.org/bot" + telegramBot.getToken() + "/getFile?file_id=" + fileId);
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlGettingPath.openStream()));
+            String response = bufferedReader.readLine();
+
+            JsonElement element = JsonParser.parseString(response);
+            JsonObject root = element.getAsJsonObject();
+            JsonObject result = root.getAsJsonObject("result");
+            String file_path = result.get("file_path").getAsString();
+
+            InputStream inputStream = new URL("https://api.telegram.org/file/bot" + telegramBot.getToken() + "/" + file_path).openStream();
+            OutputStream outputStream = Files.newOutputStream(file, CREATE_NEW);
+            inputStream.transferTo(outputStream);
+            inputStream.close();
+            outputStream.close();
+            return true;
+        } catch (IOException e) {
+            logger.error("Ошибка выполнения функции downloadFileFromTG():" + e.getMessage() + " (" + e.getClass() + ")");
+            botService.sendInfo("Ошибка при загрузке вашего файла. Попробуйте позднее", ProbationDataType.TEXT, userChatId);
+            return false;
+        }
+    }
+
+    public void getDataReport(long userChatId, ProbationDataType type) throws InterruptedException {
+        Map<String, String> questionnaire = botService.startAction("data_report", userChatId);
+        if (questionnaire.containsKey("interrupt")) return;
+        Integer petId = Integer.parseInt(questionnaire.get("pet-id"));
+        String[] fileIdAdnFileName = questionnaire.get("file-id").split("::");
+        if (fileIdAdnFileName.length != 2) {
+            logger.error("Неверно передан параметр для загрузки файла: " + fileIdAdnFileName);
+            botService.sendInfo("Передача файла прервана из-за внутренней ошибки. Сообщите о проблеме администратору.", ProbationDataType.TEXT, userChatId);
+            return;
+        }
+
+        User user = userRepository.findUserByChatId(userChatId).get();
+        if (user == null) {
+            String message = String.format("Отчет не может быть принят, так как ваш идентификатор чата %d не зарегистрирован в базе. " +
+                    "\nДля решения проблемы закажите обратный звонок с сотрудником", userChatId);
+            botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
+            return;
+        }
+        Probation probation = probationRepository.getProbationByClientIdAndPetId(user.getId(), petId).get();
+        if (probation == null) {
+            String message = String.format("По указанным идентификаторам пользователя %d и питомца %d нет записи по " +
+                    "испытательному сроку. \nДля решения проблемы закажите обратный звонок с сотрудником", user.getId(), petId);
+            botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
+            return;
+        }
+        LocalDateTime currentDateTime = LocalDateTime.now();
+        if (currentDateTime.isBefore(probation.getDateBegin()) || currentDateTime.isAfter(probation.getDateFinish())) {
+            String message = "Текущая дата находится вне интервала испытательного срока. Получение данных прервано.";
+            botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
+            return;
+        }
+
+        String relativePath = String.valueOf(probation.getId()) + "/" + LocalDate.now().toString() + "/" + fileIdAdnFileName[1];
+        if (!downloadFileFromTG(fileIdAdnFileName[0], relativePath, userChatId)) {
+            logger.error(String.format("Ошибка загрузки файла из telegram: file_id: %s, relativePath: %s", fileIdAdnFileName[0], relativePath));
+            return;
+        }
+
+        // подготовка и запись в БД
+        boolean photoReceived = type == ProbationDataType.PHOTO;
+        boolean documentReceived = type == ProbationDataType.DOCUMENT;
+
+        ProbationJournal probationJournal = probationJournalRepository.findProbationJournalByProbationIs(probation).get();
+        if (probationJournal == null) {
+            probationJournal = new ProbationJournal(currentDateTime, photoReceived, documentReceived);
+            probationJournal.setProbation(probation);
+        } else {
+            probationJournal.setPhotoReceived(photoReceived);
+            probationJournal.setReportReceived(documentReceived);
+        }
+        ProbationData probationData = new ProbationData(type, relativePath, probationJournal);
+        Set<ProbationData> dataSet = probationJournal.getProbationDataSet();
+        if (dataSet == null) dataSet = new HashSet<>();
+        dataSet.add(probationData);
+        probationJournalRepository.save(probationJournal);
     }
 
 }
