@@ -1,6 +1,5 @@
 package com.teamwork.animalshelter.service;
 
-import com.fasterxml.jackson.databind.util.JSONPObject;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -13,8 +12,6 @@ import com.teamwork.animalshelter.exception.NotFoundCommand;
 import com.teamwork.animalshelter.exception.UnknownKey;
 import com.teamwork.animalshelter.model.*;
 import com.teamwork.animalshelter.repository.*;
-import org.apache.tomcat.util.http.fileupload.FileUtils;
-import org.aspectj.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -43,6 +40,7 @@ public class UserService {
     private final AnimalShetlerInfoService animalShetlerInfoService;
     private final AnimalShetlerProperties animalShetlerProperties;
     private final ProbationJournalRepository probationJournalRepository;
+    private final PetRepository petRepository;
 
     private final TelegramBot telegramBot;
 
@@ -52,7 +50,7 @@ public class UserService {
                        UserRepository userRepository, ContactRepository contactRepository,
                        ProbationRepository probationRepository, SupportRepository supportRepository,
                        AnimalShetlerInfoService animalShetlerInfoService, AnimalShetlerProperties animalShetlerProperties,
-                       ProbationJournalRepository probationJournalRepository, TelegramBot telegramBot) {
+                       ProbationJournalRepository probationJournalRepository, PetRepository petRepository, TelegramBot telegramBot) {
         this.botService = botService;
         this.askableServiceObjects = askableServiceObjects;
         this.userRepository = userRepository;
@@ -62,6 +60,7 @@ public class UserService {
         this.animalShetlerInfoService = animalShetlerInfoService;
         this.animalShetlerProperties = animalShetlerProperties;
         this.probationJournalRepository = probationJournalRepository;
+        this.petRepository = petRepository;
         this.telegramBot = telegramBot;
     }
 
@@ -134,7 +133,7 @@ public class UserService {
      *     <li>{@code /y}</li>
      *     <li>{@code /да}</li>
      * </ul>
-     * @param userChatId идентификатор пользователя
+     * @param userChatId идентификатор чата пользователя
      * @param employees список свободных сотрудников
      * @param message сообщение, отправляемое сотрудникам
      * @param minutes интервал ожидания (в минутах), в течение которого будет ожидаться ответ от сотрудников
@@ -318,7 +317,7 @@ public class UserService {
 
     private void sendTasksToEmployees(List<Probation> probations, String taskString) {
         List<User> freeVolunteers = userRepository.findUsersByVolunteerActiveIsTrue();
-        User adminEmployee = userRepository.findFirstByAdministratorIsTrue().get();
+        User adminEmployee = userRepository.findFirstByAdministratorIsTrueAndChatIdGreaterThan(0L).get();
         if (adminEmployee == null) {
             throw new NotFoundAdministrator();
         }
@@ -591,22 +590,32 @@ public class UserService {
         }
     }
 
+    private String getPathStorage(long chatId) {
+        String filePath = animalShetlerProperties.getPathStorage();
+        if (filePath.isEmpty()) {
+            String message = "Не задан путь к хранилищу. Свяжитесь с администратором";
+            logger.error("Не задан путь к хранилищу");
+            if (chatId != 0) {
+                botService.sendInfo(message, ProbationDataType.TEXT, chatId);
+            }
+            return null;
+        }
+        File dir = new File(filePath);
+        if (!dir.exists()) {
+            String message = "Путь к хранилищу задан с ошибкой. Свяжитесь с администратором";
+            logger.error("Путь к хранилищу не существует");
+            if (chatId != 0) {
+                botService.sendInfo(message, ProbationDataType.TEXT, chatId);
+            }
+            return null;
+        }
+        return filePath;
+    }
+
     private boolean downloadFileFromTG(String fileId, String relativePath, long userChatId) {
         try {
-            String filePath = animalShetlerProperties.getPathStorage();
-            if (filePath.isEmpty()) {
-                String message = "Не задан путь к хранилищу. Свяжитесь с администратором";
-                logger.error("Не задан путь к хранилищу");
-                botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
-                return false;
-            }
-            File dir = new File(filePath);
-            if (!dir.exists()) {
-                String message = "Путь к хранилищу задан с ошибкой. Свяжитесь с администратором";
-                logger.error("Путь к хранилищу не существует");
-                botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
-                return false;
-            }
+            String filePath = getPathStorage(userChatId);
+            if (filePath == null) return false;
 
             Path file = new File(filePath + relativePath).toPath();
             Files.createDirectories(file.getParent());
@@ -689,6 +698,147 @@ public class UserService {
         if (dataSet == null) dataSet = new HashSet<>();
         dataSet.add(probationData);
         probationJournalRepository.save(probationJournal);
+    }
+
+    public void choosePet(long userChatId) throws InterruptedException {
+        User adminEmployee = userRepository.findFirstByAdministratorIsTrueAndChatIdGreaterThan(0L).get();
+        if (adminEmployee == null) {
+            throw new NotFoundAdministrator();
+        }
+
+        User user = userRepository.findUserByChatId(userChatId).get();
+        boolean isRequiredDataUser = true;
+        if (user != null) {
+            String phones = getTelephonesByUser(user);
+            if (!phones.isEmpty()) {
+                String message = String.format("Найден пользователь с привязкой к данному чату." +
+                        "\nИмя: %s \nТелефоны: %s", user.getName(), phones);
+                botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
+                Map<String, String> result = botService.startAction("verify_data_user", userChatId);
+                if (result.containsKey("interrupt")) return;
+                if (result.containsKey("answer") && result.get("answer").equals("y")) isRequiredDataUser = false;
+            }
+        }
+        if (isRequiredDataUser) {
+            Map<String, String> result = botService.startAction("data_user", userChatId);
+            if (result.containsKey("interrupt")) return;
+            String name = result.get("name");
+            String phone = result.get("telephone");
+
+            if (!replaceUserNameAndPhone(user, name, phone, userChatId)) {
+                botService.sendInfo("Произошла ошибка записи данных. Выполнение команды пришлось прервать. " +
+                        "Сообщите, пожалуйста, об ошибке в тех.поддержку", ProbationDataType.TEXT, userChatId);
+                return;
+            }
+        }
+        Map<String, String> result = botService.startAction("ask_pet_id", userChatId);
+        if (result.containsKey("interrupt")) return;
+        Integer petId = Integer.parseInt(result.get("pet-id"));
+        Pet pet = petRepository.findById(petId).get();
+        if (pet == null) {
+            String message = "Вы ввели несуществующий идентификатор питомца. " +
+                    "Для повторной попытки следует запустить команду заново.";
+            botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
+            return;
+        }
+        if (!pet.getLookingForOwner()) {
+            String message = "Указанный питомец уже нашел хозяина. " +
+                    "Для выбора другого питомца следует запустить команду заново.";
+            botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
+            return;
+        }
+        if (!sendDataPet(pet, userChatId, true)) {
+            botService.sendInfo("Произошла ошибка отправки данных. Выполнение команды пришлось прервать. " +
+                    "Сообщите, пожалуйста, об ошибке в тех.поддержку", ProbationDataType.TEXT, userChatId);
+            return;
+        }
+        result = botService.startAction("verify_pet_id", userChatId);
+        if (result.containsKey("interrupt")) return;
+        if (result.get("answer").equals("n")) {
+            String message = "Для выбора другого питомца следует запустить команду заново.";
+            botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
+            return;
+        }
+        pet.setLookingForOwner(false);
+        petRepository.save(pet);
+        botService.sendInfo("Пожалуйста, немного подождите (не более 2 минут)... идет ваша постановка на оформление питомца...", ProbationDataType.TEXT, userChatId);
+
+        List<User> volunteers = userRepository.findUsersByVolunteerActiveIsTrue();
+        Long employeeChatId = null;
+        if (volunteers != null && volunteers.size() > 0) {
+            employeeChatId = startConcurrentQuery(userChatId, volunteers, "Требуется оформить питомца. Кто возьмет работу?", 2);
+        }
+        if (employeeChatId == null) {
+            employeeChatId = adminEmployee.getChatId();
+        }
+        String message = String.format("Требуется оформить питомца." +
+                "\nКлиент: %s (идентификатор: %d)\n" +
+                "Телефоны: %s, \n" +
+                "Идентификатор питомца: %d, \n" +
+                "Кличка питомца: %s.", user.getName(), user.getId(), getTelephonesByUser(user), pet.getId(), pet.getNickname());
+        botService.sendInfo(message, ProbationDataType.TEXT, employeeChatId);
+        botService.sendInfo("Благодарим за ожидание. С вами свяжутся в течение 1-2 дней", ProbationDataType.TEXT, userChatId);
+    }
+
+    private boolean replaceUserNameAndPhone(User user, String name, String phone, long chatId) {
+        try {
+            if (user == null) {
+                user = new User(name, false, false, false, chatId, LocalDateTime.now(), "");
+            } else {
+                user.setName(name);
+            }
+            Set<Contact> contacts = user.getContacts();
+            if (contacts == null) {
+                contacts = new HashSet<>();
+            }
+            Contact contact = new Contact(ContactType.TELEPHONE, phone, user);
+            for (Contact obj : contacts) {
+                if (obj.getType() == ContactType.TELEPHONE) contacts.remove(obj);
+            }
+            contacts.add(contact);
+            userRepository.save(user);
+            return true;
+        } catch (Exception e) {
+            logger.error("В функции replaceUserNameAndPhone() произошло исключение: " + e.getMessage() + " (" + e.getClass() + ")");
+            return false;
+        }
+    }
+
+    private boolean sendDataPet(Pet pet, long chatId, boolean onlyFirstPhoto) {
+        try {
+            String filePath = getPathStorage(chatId);
+            if (filePath == null) return false;
+
+            String petId = "Идентификатор питомца: " + pet.getId();
+            String description = String.format("Кличка: %s\nПорода: %s\nВозраст: %s\nХарактер: %s",
+                    pet.getNickname(), pet.getBreed(), pet.getAge(), pet.getCharacter());
+            Set<PhotoPets> photoPets = pet.getPhotoPets();
+            PhotoPets photo = null;
+            if (photoPets != null && photoPets.size() > 0) {
+                photo = photoPets.stream().toList().get(0);
+            }
+
+            botService.sendInfo(petId, ProbationDataType.TEXT, chatId);
+            File file = null;
+            if (onlyFirstPhoto && photo != null) {
+                file = new File(filePath + photo.getPhoto());
+                if (file.exists()) {
+                    botService.sendInfo(file, ProbationDataType.PHOTO, chatId);
+                }
+            } else if (photoPets != null) {
+                for (PhotoPets photoPet : photoPets) {
+                    file = new File(filePath + photoPet.getPhoto());
+                    if (file.exists()) {
+                        botService.sendInfo(file, ProbationDataType.PHOTO, chatId);
+                    }
+                }
+            }
+            botService.sendInfo(description, ProbationDataType.TEXT, chatId);
+            return true;
+        } catch (Exception e) {
+            logger.error("В функции sendDataPet() произошло исключение: " + e.getMessage() + " (" + e.getClass() + ")");
+            return false;
+        }
     }
 
 }

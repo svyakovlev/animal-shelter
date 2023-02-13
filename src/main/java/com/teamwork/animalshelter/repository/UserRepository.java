@@ -18,6 +18,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     List<User> findUsersByAdministratorIsTrueAndVolunteerActiveIsTrue();
 
     List<User> findUsersByVolunteerActiveIsTrue();
-    Optional<User> findFirstByAdministratorIsTrue();
+    Optional<User> findFirstByAdministratorIsTrueAndChatIdGreaterThan(long zero);
 
 }

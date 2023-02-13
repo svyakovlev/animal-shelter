@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<Questionnaire name="verify_data_user" interval="2">
+    <Question label="answer">
+        <Content>Имя и телефон(-ы) верно указаны? (y/n)</Content>
+        <Check>^[y|n]{1}$</Check>
+        <Hint>Следует использовать один из символов 'y' (yes) или 'n' (no)</Hint>
+    </Question>
+</Questionnaire>
