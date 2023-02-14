@@ -841,4 +841,45 @@ public class UserService {
         }
     }
 
+    /**
+     * Создает испытательный срок для клиента, указанного волонтером.
+     * Вызывается по команде "/transfer".
+     * @param volunteerChatId идентификатор чата волонтера
+     * @throws InterruptedException
+     */
+    public void transferPet(long volunteerChatId) throws InterruptedException {
+        Map<String, String> result = botService.startAction("setup_probation", volunteerChatId);
+        if (result.containsKey("interrupt")) return;
+        Integer clientId = Integer.parseInt(result.get("client-id"));
+        Integer petId = Integer.parseInt(result.get("pet-id"));
+        long number = Integer.parseInt(result.get("number"));
+
+        User user = userRepository.findUserById(clientId).get();
+        if (user == null) {
+            botService.sendInfo("По указанному идентификатору пользователь не найден",
+                    ProbationDataType.TEXT, volunteerChatId);
+            return;
+        }
+        Pet pet = petRepository.findById(petId).get();
+        if (pet == null) {
+            botService.sendInfo("По указанному идентификатору питомец не найден",
+                    ProbationDataType.TEXT, volunteerChatId);
+            return;
+        }
+        LocalDateTime beginDate = LocalDateTime.now().toLocalDate().atStartOfDay().plusDays(1);
+        Probation probation = probationRepository.getProbationByClientIdAndPetId(clientId, petId).get();
+        if (probation != null && beginDate.plusMinutes(1).isAfter(probation.getDateBegin()) && beginDate.isBefore(probation.getDateFinish())) {
+            botService.sendInfo("Испытательный срок уже назначен",
+                    ProbationDataType.TEXT, volunteerChatId);
+            return;
+        }
+        probation = new Probation(beginDate, beginDate.plusDays(number), false, user, pet);
+        probationRepository.save(probation);
+
+        botService.sendInfo("Испытательный срок успешно назначен.", ProbationDataType.TEXT, volunteerChatId);
+        String message = String.format("%s, вам назначен испытательный срок по питомцу %s с %s по %s.",
+                user.getName(), pet.getNickname(), probation.getDateBegin().toString(), probation.getDateFinish().toString());
+        botService.sendInfo(message, ProbationDataType.TEXT, user.getChatId());
+    }
+
 }

@@ -15,6 +15,8 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findUserByChatId(Long chatId);
 
+    Optional<User> findUserById(Integer id);
+
     List<User> findUsersByAdministratorIsTrueAndVolunteerActiveIsTrue();
 
     List<User> findUsersByVolunteerActiveIsTrue();
