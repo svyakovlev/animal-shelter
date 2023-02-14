@@ -14,6 +14,7 @@ import com.teamwork.animalshelter.model.*;
 import com.teamwork.animalshelter.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -843,7 +844,6 @@ public class UserService {
 
     /**
      * Создает испытательный срок для клиента, указанного волонтером.
-     * Вызывается по команде "/transfer".
      * @param volunteerChatId идентификатор чата волонтера
      * @throws InterruptedException
      */
@@ -880,6 +880,37 @@ public class UserService {
         String message = String.format("%s, вам назначен испытательный срок по питомцу %s с %s по %s.",
                 user.getName(), pet.getNickname(), probation.getDateBegin().toString(), probation.getDateFinish().toString());
         botService.sendInfo(message, ProbationDataType.TEXT, user.getChatId());
+    }
+
+    /**
+     * Отображает данные по питомцам, которые еще не нашли хозяев.
+     * @param userChatId идентификатор чата пользователя.
+     * @throws InterruptedException
+     */
+    public void seePets(long userChatId) throws InterruptedException {
+        final int COUNT_ON_PAGE = 3;
+        Integer totalPets = petRepository.getTotalPetsWhoLookingForOwner().get();
+        if (totalPets == null) {
+            botService.sendInfo("Питомцев для просмотра нет", ProbationDataType.TEXT, userChatId);
+            return;
+        }
+        int pages = totalPets / COUNT_ON_PAGE + totalPets % COUNT_ON_PAGE == 0 ? 0 : 1;
+        for (int i = 0; i < pages; i++) {
+            if (i > 0) {
+                Map<String, String> result = botService.startAction("continue_view", userChatId);
+                if (result.containsKey("interrupt")) return;
+                if (result.get("answer").equals("n")) return;
+            }
+            PageRequest pageRequest = PageRequest.of(i, COUNT_ON_PAGE);
+            List<Pet> pets = petRepository.findAllByLookingForOwnerIsTrue(pageRequest).getContent();
+            for (Pet pet : pets) {
+                if (!sendDataPet(pet, userChatId, false)) {
+                    botService.sendInfo("Ошибка при передаче данных. Команда прервана.", ProbationDataType.TEXT, userChatId);
+                    return;
+                }
+            }
+        }
+        botService.sendInfo("Надеемся, что Вам кто-нибудь понравился.", ProbationDataType.TEXT, userChatId);
     }
 
 }

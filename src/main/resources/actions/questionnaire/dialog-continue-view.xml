@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<Questionnaire name="continue_view" interval="2">
+    <Question label="answer">
+        <Content>Продолжить просмотр? (y/n)</Content>
+        <Check>^[y|n]{1}$</Check>
+        <Hint>Следует использовать один из символов 'y' (yes) или 'n' (no)</Hint>
+    </Question>
+</Questionnaire>
