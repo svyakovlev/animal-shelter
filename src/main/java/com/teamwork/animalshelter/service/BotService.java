@@ -156,6 +156,7 @@ public class BotService {
                     }
                     if (ask.verificationRequired() && !ask.checkResponse(response)) {
                         s = "В вашем ответе была допущена ошибка: " + ask.getLastError() + "\n Введите ваш ответ еще раз (для выхода из команды отправьте '0')";
+                        sendInfo(s, ProbationDataType.TEXT, chatId);
                     } else {
                         ask.setResponse(response);
                     }
