@@ -47,6 +47,9 @@ public class Pet {
         return id;
     }
 
+    public void setId(Integer id) {
+        this.id = id;
+    }
 
     public String getNickname() {
         return nickname;
@@ -86,6 +89,14 @@ public class Pet {
 
     public void setLookingForOwner(Boolean lookingForOwner) {
         this.lookingForOwner = lookingForOwner;
+    }
+
+    public Set<PhotoPets> getPhotoPets() {
+        return photoPets;
+    }
+
+    public void setPhotoPets(Set<PhotoPets> photoPets) {
+        this.photoPets = photoPets;
     }
 
     @Override

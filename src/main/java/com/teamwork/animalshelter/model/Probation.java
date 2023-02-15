@@ -45,11 +45,10 @@ public class Probation {
 
     public Probation() {}
 
-    public Probation(LocalDateTime dateBegin, LocalDateTime dateFinish, boolean success, String result, User user, Pet pet) {
+    public Probation(LocalDateTime dateBegin, LocalDateTime dateFinish, boolean success, User user, Pet pet) {
         this.dateBegin = dateBegin;
         this.dateFinish = dateFinish;
         this.success = success;
-        this.result = result;
         this.user = user;
         this.pet = pet;
     }
