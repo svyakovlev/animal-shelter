@@ -21,10 +21,9 @@ public class Contact {
 
     public Contact() {}
 
-    public Contact(ContactType type, String value, User user) {
+    public Contact(ContactType type, String value) {
         this.type = type;
         this.value = value;
-        this.user = user;
     }
 
     public int getId() {

@@ -92,11 +92,15 @@ public class UserService {
         user.setChatId(chatId);
         user.setName(replayMessage.get("name"));
 
+        String phone = replayMessage.get("telephone");
+        if (phone.length() == 10) phone = "7" + phone;
+        else if (phone.length() == 12) phone = phone.substring(1);
+
         Contact contact = new Contact();
 
         contact.setUser(user);
         contact.setType(ContactType.TELEPHONE);
-        contact.setValue(replayMessage.get("telephone"));
+        contact.setValue(phone);
 
         userRepository.saveAndFlush(user);
         contactRepository.saveAndFlush(contact);
@@ -178,6 +182,9 @@ public class UserService {
     }
 
     private User findUserByPhoneNumber(String phoneNumber) {
+        if (phoneNumber.length() == 10) phoneNumber = "7" + phoneNumber;
+        else if (phoneNumber.length() == 12) phoneNumber = phoneNumber.substring(1);
+
         Contact contact = contactRepository.findContactByValueAndType(phoneNumber, 1).get();
         if (contact == null) {
             return null;
@@ -805,6 +812,9 @@ public class UserService {
             String name = result.get("name");
             String phone = result.get("telephone");
 
+            if (phone.length() == 10) phone = "7" + phone;
+            else if (phone.length() == 12) phone = phone.substring(1);
+
             if (!replaceUserNameAndPhone(user, name, phone, userChatId)) {
                 botService.sendInfo("Произошла ошибка записи данных. Выполнение команды пришлось прервать. " +
                         "Сообщите, пожалуйста, об ошибке в тех.поддержку", ProbationDataType.TEXT, userChatId);
@@ -871,11 +881,12 @@ public class UserService {
             if (contacts == null) {
                 contacts = new HashSet<>();
             }
-            Contact contact = new Contact(ContactType.TELEPHONE, phone, user);
+            Contact contact = new Contact(ContactType.TELEPHONE, phone);
             for (Contact obj : contacts) {
                 if (obj.getType() == ContactType.TELEPHONE) contacts.remove(obj);
             }
             contacts.add(contact);
+            user.setContacts(contacts);
             userRepository.save(user);
             return true;
         } catch (Exception e) {
@@ -1076,6 +1087,9 @@ public class UserService {
         Map<String, String> questionnaire = botService.startAction("ask_user_telephone", chatId);
         if (questionnaire.containsKey("interrupt")) return;
         String phone = questionnaire.get("user-telephone");
+
+        if (phone.length() == 10) phone = "7" + phone;
+        else if (phone.length() == 12) phone = phone.substring(1);
 
         User user = findUserByPhoneNumber(phone);
         if (user == null) {
