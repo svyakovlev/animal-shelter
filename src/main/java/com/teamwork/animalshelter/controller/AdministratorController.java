@@ -20,8 +20,10 @@ public class AdministratorController {
     }
 
     @PostMapping("add")
-    public ResponseEntity<String> addAdministrator(@RequestParam String name, @RequestParam String phone) {
-        User user = administratorService.addAdministrator(name, phone);
+    public ResponseEntity<String> addAdministrator(@RequestParam String name,
+                                                   @RequestParam String phone,
+                                                   @RequestParam Long chatId) {
+        User user = administratorService.addAdministrator(name, phone, chatId);
         if (user == null) return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         return ResponseEntity.ok("Запись прошла успешно.");
     }

@@ -42,24 +42,23 @@ public class TelegramBotConfiguration {
         commands.put("/state", "Текущее состояние активности");
         commands.put("/active", "Перевести в активное состояние");
         commands.put("/busy", "Перевести в занятое состояние");
-        commands.put("/get-client", "Получить информацию о клиенте по id");
-        commands.put("/find-client", "Получить информацию о клиенте по телефону");
-        commands.put("/get-client-probation", "Найти записи об испытательном сроке по id");
+        commands.put("/get_client", "Получить информацию о клиенте по id");
+        commands.put("/find_client", "Получить информацию о клиенте по телефону");
+        commands.put("/get_client_probation", "Найти записи об испытательном сроке по id");
         commands.put("/message", "Отправить предупреждение пользователю");
         commands.put("/transfer", "Назначить испытательный срок");
         commands.put("/prolongation", "Продлить испытательный срок");
-        commands.put("/finish-probation", "Закончить испытательный срок");
+        commands.put("/finish_probation", "Закончить испытательный срок");
         return commands;
     }
 
     @Bean(name = "administratorCommands")
     public Map<String, String> getAdministratorCommands() {
         Map<String, String> commands = new LinkedHashMap<>();
-        commands.put("/write-chat-id", "Инициализация администратора по номеру телефона");
-        commands.put("/set-volunteer", "Сделать пользователя волонтером");
-        commands.put("/reset-volunteer", "Убрать пользователя из группы волонтеров");
-        commands.put("/add-pet", "Добавить питомца");
-        commands.put("/add-photo-pet", "Добавить фотографию питомца");
+        commands.put("/set_volunteer", "Сделать пользователя волонтером");
+        commands.put("/reset_volunteer", "Убрать пользователя из группы волонтеров");
+        commands.put("/add_pet", "Добавить питомца");
+        commands.put("/add_photo_pet", "Добавить фотографию питомца");
         return commands;
     }
 
@@ -74,6 +73,7 @@ public class TelegramBotConfiguration {
         commands.put("/chat", "Позвать волонтера в чат");
         commands.put("/volunteer", "Хочу стать волонтером");
         commands.put("/show", "Для сотрудников");
+        commands.put("/show_chat_id", "-");
         return commands;
     }
 

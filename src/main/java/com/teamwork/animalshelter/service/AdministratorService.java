@@ -19,14 +19,14 @@ public class AdministratorService {
         this.userRepository = userRepository;
     }
 
-    public User addAdministrator(String name, String phone) {
+    public User addAdministrator(String name, String phone, long chatId) {
         String regex = "^(7|(\\+7))?9[\\d]{9}$";
         if (!phone.matches(regex)) {
             throw new WrongPhoneNumber();
         }
         if (phone.length() == 10) phone = "7" + phone;
         else if (phone.length() == 12) phone = phone.substring(1);
-        User user = new User(name, false, false, true, 0, null, "");
+        User user = new User(name, false, false, true, chatId, null, "");
         Set<Contact> contacts = new HashSet<>();
         Contact contact = new Contact(ContactType.TELEPHONE, phone);
         contacts.add(contact);

@@ -178,14 +178,14 @@ public class UserService {
     }
 
     private User findUserByChatId(long chatId) {
-        return userRepository.findUserByChatId(chatId).get();
+        return userRepository.findUserByChatId(chatId).orElse(null);
     }
 
     private User findUserByPhoneNumber(String phoneNumber) {
         if (phoneNumber.length() == 10) phoneNumber = "7" + phoneNumber;
         else if (phoneNumber.length() == 12) phoneNumber = phoneNumber.substring(1);
 
-        Contact contact = contactRepository.findContactByValueAndType(phoneNumber, 1).get();
+        Contact contact = contactRepository.findContactByValueAndType(phoneNumber, 1).orElse(null);
         if (contact == null) {
             return null;
         } else {
@@ -205,7 +205,7 @@ public class UserService {
         Integer petId = Integer.parseInt(questionnaire.get("pet-id"));
         String message = questionnaire.get("message");
 
-        Probation probation = probationRepository.getProbationByClientIdAndPetId(clientId, petId).get();
+        Probation probation = probationRepository.getProbationByClientIdAndPetId(clientId, petId).orElse(null);
         if (probation == null) {
             botService.sendInfo("По указанным идентификаторам пользователя и питомца нет записи по испытательному сроку",
                     ProbationDataType.TEXT, volunteerChatId);
@@ -288,7 +288,7 @@ public class UserService {
         boolean success = questionnaire.get("success").equals("y");
         String message = questionnaire.get("message");
 
-        Probation probation = probationRepository.getProbationByClientIdAndPetId(clientId, petId).get();
+        Probation probation = probationRepository.getProbationByClientIdAndPetId(clientId, petId).orElse(null);
         if (probation == null) {
             botService.sendInfo("По указанным идентификаторам пользователя и питомца нет записи по испытательному сроку",
                     ProbationDataType.TEXT, volunteerChatId);
@@ -321,7 +321,7 @@ public class UserService {
         Integer number = Integer.parseInt(questionnaire.get("number"));
         String message = questionnaire.get("message");
 
-        Probation probation = probationRepository.getProbationByClientIdAndPetId(clientId, petId).get();
+        Probation probation = probationRepository.getProbationByClientIdAndPetId(clientId, petId).orElse(null);
         if (probation == null) {
             botService.sendInfo("По указанным идентификаторам пользователя и питомца нет записи по испытательному сроку",
                     ProbationDataType.TEXT, volunteerChatId);
@@ -361,7 +361,7 @@ public class UserService {
 
     private void sendTasksToEmployees(List<Probation> probations, String taskString) {
         List<User> freeVolunteers = userRepository.findUsersByVolunteerActiveIsTrue();
-        User adminEmployee = userRepository.findFirstByAdministratorIsTrueAndChatIdGreaterThan(0L).get();
+        User adminEmployee = userRepository.findFirstByAdministratorIsTrueAndChatIdGreaterThan(0L).orElse(null);
         if (adminEmployee == null) {
             throw new NotFoundAdministrator();
         }
@@ -447,7 +447,7 @@ public class UserService {
     }
 
     public void sendGreeting(long chatId, LocalDateTime newVisit) {
-        User user = userRepository.findUserByChatId(chatId).get();
+        User user = userRepository.findUserByChatId(chatId).orElse(null);
         if (user != null) {
             LocalDateTime lastVisit = user.getLastVisit();
             if (lastVisit == null || lastVisit.toLocalDate().atStartOfDay().compareTo(newVisit.toLocalDate().atStartOfDay()) != 0) {
@@ -491,6 +491,9 @@ public class UserService {
                 case "/show":
                     showSpecialCommands(chatId);
                     break;
+                case "/show_chat_id":
+                    botService.sendInfo(String.valueOf(chatId), ProbationDataType.TEXT, chatId);
+                    break;
 
                 case "/state":
                     getState(chatId);
@@ -501,29 +504,26 @@ public class UserService {
                 case "/busy":
                     setState(chatId, false);
                     break;
-                case "/get-user":
+                case "/get_user":
                     getInfoUserByUserId(chatId);
                     break;
-                case "/find-user":
+                case "/find_user":
                     getInfoUserByUserTelephone(chatId);
                     break;
-                case "/get-user-probation":
+                case "/get_user_probation":
                     getInfoByProbationId(chatId);
                     break;
 
-                case "/write-chat-id":
-                    writeChatIdByTelephone(chatId);
-                    break;
-                case "/add-pet":
+                case "/add_pet":
                     addPet(chatId);
                     break;
-                case "/add-photo-pet":
+                case "/add_photo_pet":
                     addPetPhoto(chatId);
                     break;
-                case "/set-volunteer":
+                case "/set_volunteer":
                     setVolunteerPosition(chatId, true);
                     break;
-                case "/reset-volunteer":
+                case "/reset_volunteer":
                     setVolunteerPosition(chatId, false);
                     break;
 
@@ -738,14 +738,14 @@ public class UserService {
             return;
         }
 
-        User user = userRepository.findUserByChatId(userChatId).get();
+        User user = userRepository.findUserByChatId(userChatId).orElse(null);
         if (user == null) {
             String message = String.format("Отчет не может быть принят, так как ваш идентификатор чата %d не зарегистрирован в базе. " +
                     "\nДля решения проблемы закажите обратный звонок с сотрудником", userChatId);
             botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
             return;
         }
-        Probation probation = probationRepository.getProbationByClientIdAndPetId(user.getId(), petId).get();
+        Probation probation = probationRepository.getProbationByClientIdAndPetId(user.getId(), petId).orElse(null);
         if (probation == null) {
             String message = String.format("По указанным идентификаторам пользователя %d и питомца %d нет записи по " +
                     "испытательному сроку. \nДля решения проблемы закажите обратный звонок с сотрудником", user.getId(), petId);
@@ -772,7 +772,7 @@ public class UserService {
         LocalDateTime beginDay = currentDateTime.toLocalDate().atStartOfDay();
         LocalDateTime endDay = beginDay.plusDays(1).minusSeconds(1);
         ProbationJournal probationJournal = probationJournalRepository.findProbationJournalByProbationEqualsAndDateAfterAndDateBefore(
-                probation, beginDay, endDay).get();
+                probation, beginDay, endDay).orElse(null);
         if (probationJournal == null) {
             probationJournal = new ProbationJournal(currentDateTime, photoReceived, documentReceived);
             probationJournal.setProbation(probation);
@@ -788,12 +788,12 @@ public class UserService {
     }
 
     public void choosePet(long userChatId) throws InterruptedException {
-        User adminEmployee = userRepository.findFirstByAdministratorIsTrueAndChatIdGreaterThan(0L).get();
+        User adminEmployee = userRepository.findFirstByAdministratorIsTrueAndChatIdGreaterThan(0L).orElse(null);
         if (adminEmployee == null) {
             throw new NotFoundAdministrator();
         }
 
-        User user = userRepository.findUserByChatId(userChatId).get();
+        User user = userRepository.findUserByChatId(userChatId).orElse(null);
         boolean isRequiredDataUser = true;
         if (user != null) {
             String phones = getTelephonesByUser(user);
@@ -824,7 +824,7 @@ public class UserService {
         Map<String, String> result = botService.startAction("ask_pet_id", userChatId);
         if (result.containsKey("interrupt")) return;
         Integer petId = Integer.parseInt(result.get("pet-id"));
-        Pet pet = petRepository.findById(petId).get();
+        Pet pet = petRepository.findById(petId).orElse(null);
         if (pet == null) {
             String message = "Вы ввели несуществующий идентификатор питомца. " +
                     "Для повторной попытки следует запустить команду заново.";
@@ -944,20 +944,20 @@ public class UserService {
         Integer petId = Integer.parseInt(result.get("pet-id"));
         long number = Integer.parseInt(result.get("number"));
 
-        User user = userRepository.findUserById(clientId).get();
+        User user = userRepository.findUserById(clientId).orElse(null);
         if (user == null) {
             botService.sendInfo("По указанному идентификатору пользователь не найден",
                     ProbationDataType.TEXT, volunteerChatId);
             return;
         }
-        Pet pet = petRepository.findById(petId).get();
+        Pet pet = petRepository.findById(petId).orElse(null);
         if (pet == null) {
             botService.sendInfo("По указанному идентификатору питомец не найден",
                     ProbationDataType.TEXT, volunteerChatId);
             return;
         }
         LocalDateTime beginDate = LocalDateTime.now().toLocalDate().atStartOfDay().plusDays(1);
-        Probation probation = probationRepository.getProbationByClientIdAndPetId(clientId, petId).get();
+        Probation probation = probationRepository.getProbationByClientIdAndPetId(clientId, petId).orElse(null);
         if (probation != null && beginDate.plusMinutes(1).isAfter(probation.getDateBegin()) && beginDate.isBefore(probation.getDateFinish())) {
             botService.sendInfo("Испытательный срок уже назначен",
                     ProbationDataType.TEXT, volunteerChatId);
@@ -979,7 +979,7 @@ public class UserService {
      */
     public void seePets(long userChatId) throws InterruptedException {
         final int COUNT_ON_PAGE = 3;
-        Integer totalPets = petRepository.getTotalPetsWhoLookingForOwner().get();
+        Integer totalPets = petRepository.getTotalPetsWhoLookingForOwner().orElse(null);
         if (totalPets == null) {
             botService.sendInfo("Питомцев для просмотра нет", ProbationDataType.TEXT, userChatId);
             return;
@@ -1072,7 +1072,7 @@ public class UserService {
     }
 
     public void setState(long chatId, boolean active) {
-        User user = userRepository.findUserByChatId(chatId).get();
+        User user = userRepository.findUserByChatId(chatId).orElse(null);
         if (user == null) {
             botService.sendInfo("Ваш идентификатор чата не зарегистрирован в базе", ProbationDataType.TEXT, chatId);
             return;
@@ -1083,30 +1083,12 @@ public class UserService {
         botService.sendInfo("Ваш состояние установлено в " + state, ProbationDataType.TEXT, chatId);
     }
 
-    public void writeChatIdByTelephone(long chatId) throws InterruptedException {
-        Map<String, String> questionnaire = botService.startAction("ask_user_telephone", chatId);
-        if (questionnaire.containsKey("interrupt")) return;
-        String phone = questionnaire.get("user-telephone");
-
-        if (phone.length() == 10) phone = "7" + phone;
-        else if (phone.length() == 12) phone = phone.substring(1);
-
-        User user = findUserByPhoneNumber(phone);
-        if (user == null) {
-            botService.sendInfo("Пользователь не найден в базе по указанному телефону", ProbationDataType.TEXT, chatId);
-            return;
-        }
-        user.setChatId(chatId);
-        userRepository.save(user);
-        botService.sendInfo("Идентификатор чат записан в базу.", ProbationDataType.TEXT, chatId);
-    }
-
     public void setVolunteerPosition(long chatId, boolean volunteer) throws InterruptedException {
         Map<String, String> questionnaire = botService.startAction("ask_user_id", chatId);
         if (questionnaire.containsKey("interrupt")) return;
         Integer userId = Integer.parseInt(questionnaire.get("probation-id"));
 
-        User user = userRepository.findUserById(userId).get();
+        User user = userRepository.findUserById(userId).orElse(null);
         if (user == null) {
             botService.sendInfo("Идентификатор пользователя не найден в базе", ProbationDataType.TEXT, chatId);
             return;
@@ -1138,7 +1120,7 @@ public class UserService {
         if (questionnaire.containsKey("interrupt")) return;
         Integer userId = Integer.parseInt(questionnaire.get("user-id"));
 
-        User user = userRepository.findUserById(userId).get();
+        User user = userRepository.findUserById(userId).orElse(null);
         if (user == null) {
             botService.sendInfo("Идентификатор пользователя не найден в базе", ProbationDataType.TEXT, chatId);
             return;
@@ -1167,7 +1149,7 @@ public class UserService {
         Integer probationId = Integer.parseInt(questionnaire.get("probation-id"));
         Integer lastRecordNumber = Integer.parseInt(questionnaire.get("number"));
 
-        Probation probation = probationRepository.findProbationById(probationId).get();
+        Probation probation = probationRepository.findProbationById(probationId).orElse(null);
         if (probation == null) {
             botService.sendInfo("Идентификатор испытательного срока не найден в базе", ProbationDataType.TEXT, chatId);
             return;
@@ -1234,7 +1216,7 @@ public class UserService {
             return;
         }
 
-        Pet pet = petRepository.findById(petId).get();
+        Pet pet = petRepository.findById(petId).orElse(null);
         if (pet == null) {
             botService.sendInfo("Питомца с указанным идентификатором не существует", ProbationDataType.TEXT, chatId);
             return;
