@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<Questionnaire name="ask_probation_id" interval="2">
+    <Question label="probation-id">
+        <Content>Укажите идентификатор испытательного срока</Content>
+        <Check>^[\d]+$</Check>
+        <Hint>Использовать можно только цифры</Hint>
+    </Question>
+    <Question label="number">
+        <Content>Укажите количество последних записей для просмотра (1-59)</Content>
+        <Check>^[1-5][0-9]?$</Check>
+        <Hint>Можно указать от 1 до 59 дней</Hint>
+    </Question>
+</Questionnaire>

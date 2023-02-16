@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<Questionnaire name="ask_user_telephone" interval="2">
+    <Question label="user-telephone">
+        <Content>Укажите телефон пользователя</Content>
+        <Check>^(7|(\+7))?9[\d]{9}$</Check>
+        <Hint>Номер сотового телефона должен содержать 10 цифр без пробелов (вначале могут находиться символы '+7' или '7'). </Hint>
+    </Question>
+</Questionnaire>

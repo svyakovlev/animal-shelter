@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,5 +17,6 @@ public interface ProbationJournalRepository extends JpaRepository<ProbationJourn
             "where (pj.date >= current_date) " +
             "and (pj.date <= (current_timestamp - interval('1 hour')))", nativeQuery = true)
     List<ProbationJournal> getJournalRecordsOnIncompleteReport();
-    Optional<ProbationJournal> findProbationJournalByProbationIs(Probation probation);
+    Optional<ProbationJournal> findProbationJournalByProbationEqualsAndDateAfterAndDateBefore(Probation probation, LocalDateTime beginDay, LocalDateTime endDay);
+    List<ProbationJournal> findAllByProbationEqualsOrderByDateDesc(Probation probation);
 }

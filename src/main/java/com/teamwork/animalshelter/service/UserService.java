@@ -25,6 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
@@ -47,11 +49,15 @@ public class UserService {
 
     private final Logger logger = LoggerFactory.getLogger(UserService.class);
 
+    private final Map<String, String> volunteerCommands;
+    private final Map<String, String> administratorCommands;
+
     public UserService(BotService botService, AskableServiceObjects askableServiceObjects,
                        UserRepository userRepository, ContactRepository contactRepository,
                        ProbationRepository probationRepository, SupportRepository supportRepository,
                        AnimalShetlerInfoService animalShetlerInfoService, AnimalShetlerProperties animalShetlerProperties,
-                       ProbationJournalRepository probationJournalRepository, PetRepository petRepository, TelegramBot telegramBot) {
+                       ProbationJournalRepository probationJournalRepository, PetRepository petRepository,
+                       TelegramBot telegramBot, Map<String, String> volunteerCommands, Map<String, String> administratorCommands) {
         this.botService = botService;
         this.askableServiceObjects = askableServiceObjects;
         this.userRepository = userRepository;
@@ -63,6 +69,8 @@ public class UserService {
         this.probationJournalRepository = probationJournalRepository;
         this.petRepository = petRepository;
         this.telegramBot = telegramBot;
+        this.volunteerCommands = volunteerCommands;
+        this.administratorCommands = administratorCommands;
     }
 
     public void wantToBecomeVolunteer(long chatId) throws InterruptedException {
@@ -170,7 +178,7 @@ public class UserService {
     }
 
     private User findUserByPhoneNumber(String phoneNumber) {
-        Contact contact = contactRepository.findContactByValueAndType(phoneNumber, 1);
+        Contact contact = contactRepository.findContactByValueAndType(phoneNumber, 1).get();
         if (contact == null) {
             return null;
         } else {
@@ -225,6 +233,34 @@ public class UserService {
         for (Contact contact : contacts) {
             if (contact.getType() == ContactType.TELEPHONE) {
                 if (!result.isEmpty()) result.append(", ");
+                result.append(contact.getValue());
+            }
+        }
+        if (result.isEmpty()) return "";
+        return result.toString();
+    }
+
+    String getEmailsByUser(User user) {
+        Set<Contact> contacts = user.getContacts();
+        if (contacts == null) return "";
+        StringBuilder result = new StringBuilder();
+        for (Contact contact : contacts) {
+            if (contact.getType() == ContactType.EMAIL) {
+                if (!result.isEmpty()) result.append(", ");
+                result.append(contact.getValue());
+            }
+        }
+        if (result.isEmpty()) return "";
+        return result.toString();
+    }
+
+    String getAddressesByUser(User user) {
+        Set<Contact> contacts = user.getContacts();
+        if (contacts == null) return "";
+        StringBuilder result = new StringBuilder();
+        for (Contact contact : contacts) {
+            if (contact.getType() == ContactType.EMAIL) {
+                if (!result.isEmpty()) result.append(";\n");
                 result.append(contact.getValue());
             }
         }
@@ -417,6 +453,10 @@ public class UserService {
 
     public void processCommand(String message, long chatId) {
         try {
+            sendGreeting(chatId, LocalDateTime.now());
+            if (!checkAccess(chatId, message)) {
+                return;
+            }
             Map<String, String> result = null;
             switch (message) {
                 case "/info":
@@ -436,14 +476,50 @@ public class UserService {
                     runMenuCommand(result, chatId);
                     break;
                 case "/call":
-
+                    runMenuCommand(Map.of("command", "empty"), chatId);
                     break;
                 case "/chat":
                     callVolunteer(chatId);
                     break;
-                case "/show":   // показать команды волонтера/админа
-
+                case "/show":
+                    showSpecialCommands(chatId);
                     break;
+
+                case "/state":
+                    getState(chatId);
+                    break;
+                case "/active":
+                    setState(chatId, true);
+                    break;
+                case "/busy":
+                    setState(chatId, false);
+                    break;
+                case "/get-user":
+                    getInfoUserByUserId(chatId);
+                    break;
+                case "/find-user":
+                    getInfoUserByUserTelephone(chatId);
+                    break;
+                case "/get-user-probation":
+                    getInfoByProbationId(chatId);
+                    break;
+
+                case "/write-chat-id":
+                    writeChatIdByTelephone(chatId);
+                    break;
+                case "/add-pet":
+                    addPet(chatId);
+                    break;
+                case "/add-photo-pet":
+                    addPetPhoto(chatId);
+                    break;
+                case "/set-volunteer":
+                    setVolunteerPosition(chatId, true);
+                    break;
+                case "/reset-volunteer":
+                    setVolunteerPosition(chatId, false);
+                    break;
+
                 default:
                     botService.sendInfo("Неизвестная команда. Выберите команду из 'Menu'", ProbationDataType.TEXT, chatId);
             }
@@ -686,7 +762,10 @@ public class UserService {
         boolean photoReceived = type == ProbationDataType.PHOTO;
         boolean documentReceived = type == ProbationDataType.DOCUMENT;
 
-        ProbationJournal probationJournal = probationJournalRepository.findProbationJournalByProbationIs(probation).get();
+        LocalDateTime beginDay = currentDateTime.toLocalDate().atStartOfDay();
+        LocalDateTime endDay = beginDay.plusDays(1).minusSeconds(1);
+        ProbationJournal probationJournal = probationJournalRepository.findProbationJournalByProbationEqualsAndDateAfterAndDateBefore(
+                probation, beginDay, endDay).get();
         if (probationJournal == null) {
             probationJournal = new ProbationJournal(currentDateTime, photoReceived, documentReceived);
             probationJournal.setProbation(probation);
@@ -913,4 +992,255 @@ public class UserService {
         botService.sendInfo("Надеемся, что Вам кто-нибудь понравился.", ProbationDataType.TEXT, userChatId);
     }
 
+    public void showSpecialCommands(long chatId) {
+        StringBuilder helpVolunteerCommands = new StringBuilder();
+        StringBuilder helpAdministratorCommands = new StringBuilder();
+
+        for (Map.Entry<String, String> entry : volunteerCommands.entrySet()) {
+            if (!helpVolunteerCommands.isEmpty()) helpVolunteerCommands.append("\n");
+            helpVolunteerCommands.append(String.format("%s  (%s)", entry.getKey(), entry.getValue()));
+        }
+
+        for (Map.Entry<String, String> entry : administratorCommands.entrySet()) {
+            if (!helpAdministratorCommands.isEmpty()) helpAdministratorCommands.append("\n");
+            helpAdministratorCommands.append(String.format("%s  (%s)", entry.getKey(), entry.getValue()));
+        }
+
+        if (isAdministrator(chatId)) {
+            botService.sendInfo(helpAdministratorCommands.toString(), ProbationDataType.TEXT, chatId);
+            botService.sendInfo(helpVolunteerCommands.toString(), ProbationDataType.TEXT, chatId);
+        } else if (isVolunteer(chatId)) {
+            botService.sendInfo(helpVolunteerCommands.toString(), ProbationDataType.TEXT, chatId);
+        } else {
+            botService.sendInfo("Эта команда доступна только сотрудникам", ProbationDataType.TEXT, chatId);
+        }
+    }
+
+    private boolean isVolunteer(long userChatId) {
+        Integer result = userRepository.isVolunteer(userChatId).orElse(0);
+        return result > 0;
+    }
+
+    private boolean isAdministrator(long userChatId) {
+        Integer result = userRepository.isAdministrator(userChatId).orElse(0);
+        return result > 0;
+    }
+
+    private boolean isEmployee(long userChatId) {
+        Integer result = userRepository.isEmployee(userChatId).orElse(0);
+        return result > 0;
+    }
+
+    private boolean checkAccess(long chatId, String command) {
+        boolean result = false;
+        String position;
+        if (volunteerCommands.containsKey(command)) position = "volunteer";
+        else if (administratorCommands.containsKey(command)) position = "administrator";
+        else return true;
+
+        switch (position) {
+            case "volunteer":
+                result = isVolunteer(chatId);
+            case "administrator":
+                result = result || isAdministrator(chatId);
+        }
+        if (!result) {
+            botService.sendInfo("Эта команда вам недоступна", ProbationDataType.TEXT, chatId);
+        }
+        return  result;
+    }
+
+    private boolean isActiveState(long chatId) {
+        Integer result = userRepository.isActive(chatId).orElse(0);
+        return result > 0;
+    }
+
+    public void getState(long chatId) {
+        String state = isActiveState(chatId) ? "СВОБОДЕН" : "ЗАНЯТ";
+        botService.sendInfo("Ваш состояние: " + state, ProbationDataType.TEXT, chatId);
+    }
+
+    public void setState(long chatId, boolean active) {
+        User user = userRepository.findUserByChatId(chatId).get();
+        if (user == null) {
+            botService.sendInfo("Ваш идентификатор чата не зарегистрирован в базе", ProbationDataType.TEXT, chatId);
+            return;
+        }
+        user.setVolunteerActive(active);
+        userRepository.save(user);
+        String state = active ? "СВОБОДЕН" : "ЗАНЯТ";
+        botService.sendInfo("Ваш состояние установлено в " + state, ProbationDataType.TEXT, chatId);
+    }
+
+    public void writeChatIdByTelephone(long chatId) throws InterruptedException {
+        Map<String, String> questionnaire = botService.startAction("ask_user_telephone", chatId);
+        if (questionnaire.containsKey("interrupt")) return;
+        String phone = questionnaire.get("user-telephone");
+
+        User user = findUserByPhoneNumber(phone);
+        if (user == null) {
+            botService.sendInfo("Пользователь не найден в базе по указанному телефону", ProbationDataType.TEXT, chatId);
+            return;
+        }
+        user.setChatId(chatId);
+        userRepository.save(user);
+        botService.sendInfo("Идентификатор чат записан в базу.", ProbationDataType.TEXT, chatId);
+    }
+
+    public void setVolunteerPosition(long chatId, boolean volunteer) throws InterruptedException {
+        Map<String, String> questionnaire = botService.startAction("ask_user_id", chatId);
+        if (questionnaire.containsKey("interrupt")) return;
+        Integer userId = Integer.parseInt(questionnaire.get("probation-id"));
+
+        User user = userRepository.findUserById(userId).get();
+        if (user == null) {
+            botService.sendInfo("Идентификатор пользователя не найден в базе", ProbationDataType.TEXT, chatId);
+            return;
+        }
+        if (user.isVolunteer() == volunteer) return;
+        user.setVolunteer(volunteer);
+        userRepository.save(user);
+        if (volunteer) {
+            botService.sendInfo("Поздравляем! Вы приняты в волонтеры.", ProbationDataType.TEXT, user.getChatId());
+        } else {
+            botService.sendInfo("К сожалению вы больше не являетесь волонтером.", ProbationDataType.TEXT, user.getChatId());
+        }
+    }
+
+    private String getAllInfoByUser(User user) {
+        StringBuilder result = new StringBuilder();
+        result.append("Имя: " + user.getName() +
+                "\nТелефоны: " + getTelephonesByUser(user) +
+                "\nАдреса: " + getAddressesByUser(user) +
+                "\nEmails: " + getEmailsByUser(user) +
+                "\nЭто волонтер: " + (user.isVolunteer() ? "ДА" : "НЕТ") +
+                "\nПоследнее посещение чата: " + user.getLastVisit()
+        );
+        return result.toString();
+    }
+
+    public void getInfoUserByUserId(long chatId) throws InterruptedException {
+        Map<String, String> questionnaire = botService.startAction("ask_user_id", chatId);
+        if (questionnaire.containsKey("interrupt")) return;
+        Integer userId = Integer.parseInt(questionnaire.get("user-id"));
+
+        User user = userRepository.findUserById(userId).get();
+        if (user == null) {
+            botService.sendInfo("Идентификатор пользователя не найден в базе", ProbationDataType.TEXT, chatId);
+            return;
+        }
+        String info = getAllInfoByUser(user);
+        botService.sendInfo(info, ProbationDataType.TEXT, chatId);
+    }
+
+    public void getInfoUserByUserTelephone(long chatId) throws InterruptedException {
+        Map<String, String> questionnaire = botService.startAction("ask_user_telephone", chatId);
+        if (questionnaire.containsKey("interrupt")) return;
+        String userTelephone = questionnaire.get("user-telephone");
+
+        User user = findUserByPhoneNumber(userTelephone);
+        if (user == null) {
+            botService.sendInfo("Телефон пользователя не найден в базе", ProbationDataType.TEXT, chatId);
+            return;
+        }
+        String info = getAllInfoByUser(user);
+        botService.sendInfo(info, ProbationDataType.TEXT, chatId);
+    }
+
+    public void getInfoByProbationId(long chatId) throws InterruptedException {
+        Map<String, String> questionnaire = botService.startAction("ask_probation_id", chatId);
+        if (questionnaire.containsKey("interrupt")) return;
+        Integer probationId = Integer.parseInt(questionnaire.get("probation-id"));
+        Integer lastRecordNumber = Integer.parseInt(questionnaire.get("number"));
+
+        Probation probation = probationRepository.findProbationById(probationId).get();
+        if (probation == null) {
+            botService.sendInfo("Идентификатор испытательного срока не найден в базе", ProbationDataType.TEXT, chatId);
+            return;
+        }
+        List<ProbationJournal> records = probationJournalRepository.findAllByProbationEqualsOrderByDateDesc(probation);
+        if (records == null || records.size() == 0) {
+            botService.sendInfo("Записей нет", ProbationDataType.TEXT, chatId);
+            return;
+        }
+        int count = 0;
+        StringBuilder portion = new StringBuilder();
+        for (ProbationJournal probationJournal : records) {
+            if (lastRecordNumber == 0) break;
+            if (count == 5) {
+                botService.sendInfo(portion.toString(), ProbationDataType.TEXT, chatId);
+                count = 0;
+                portion = new StringBuilder();
+            }
+            count++;
+            String photoReceived = probationJournal.isPhotoReceived() ? "фото: ДА" : "фото: НЕТ";
+            String reportReceived = probationJournal.isReportReceived() ? "отчет: ДА" : "отчет: НЕТ";
+            portion.append(probationJournal.getDate().toLocalDate().toString() + "; " + reportReceived + "; " + photoReceived + "\n");
+            lastRecordNumber--;
+        }
+        if (count > 0) {
+            botService.sendInfo(portion.toString(), ProbationDataType.TEXT, chatId);
+        }
+    }
+
+    public void addPet(long chatId) throws InterruptedException {
+        Map<String, String> questionnaire = botService.startAction("ask_pet", chatId);
+        if (questionnaire.containsKey("interrupt")) return;
+        String nickname = questionnaire.get("nickname");
+        String breed = questionnaire.get("breed");
+        String character = questionnaire.get("character");
+        String dateString = questionnaire.get("birthday");
+
+        LocalDate birthday = null;
+        if (!dateString.equals("-")) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            try {
+                birthday = LocalDate.parse(dateString, formatter);
+            } catch (DateTimeParseException e) {
+                logger.error(String.format("Ошибка парсинга даты из строки '%s' (addPet(), %s", dateString, e.getMessage()));
+                botService.sendInfo("Ошибка при обработке вашего ответа. Команда будет прервана. ",
+                        ProbationDataType.TEXT, chatId);
+                return;
+            }
+        }
+        Pet pet = new Pet(nickname, breed, birthday, character, true);
+        pet = petRepository.save(pet);
+        String message = "Данные по питомцу успешно записаны. Идентификатор питомца: " + pet.getId();
+        botService.sendInfo(message, ProbationDataType.TEXT, chatId);
+    }
+
+    public void addPetPhoto(long chatId) throws InterruptedException {
+        Map<String, String> questionnaire = botService.startAction("ask_pet_photo", chatId);
+        if (questionnaire.containsKey("interrupt")) return;
+        Integer petId = Integer.parseInt(questionnaire.get("pet-id"));
+        String[] fileIdAdnFileName = questionnaire.get("file-id").split("::");
+        if (fileIdAdnFileName.length != 2) {
+            logger.error("Неверно передан параметр для загрузки файла: " + fileIdAdnFileName);
+            botService.sendInfo("Передача файла прервана из-за внутренней ошибки.", ProbationDataType.TEXT, chatId);
+            return;
+        }
+
+        Pet pet = petRepository.findById(petId).get();
+        if (pet == null) {
+            botService.sendInfo("Питомца с указанным идентификатором не существует", ProbationDataType.TEXT, chatId);
+            return;
+        }
+        String relativePath = "pets/" + String.valueOf(pet.getId()) + "/" + fileIdAdnFileName[1];
+        if (!downloadFileFromTG(fileIdAdnFileName[0], relativePath, chatId)) {
+            logger.error(String.format("Ошибка загрузки файла из telegram: file_id: %s, relativePath: %s", fileIdAdnFileName[0], relativePath));
+            return;
+        }
+
+        Set<PhotoPets> photoPets = pet.getPhotoPets();
+        if (photoPets == null) {
+            photoPets = new HashSet<>();
+            pet.setPhotoPets(photoPets);
+        }
+        PhotoPets photo = new PhotoPets(relativePath);
+        photoPets.add(photo);
+        petRepository.save(pet);
+        botService.sendInfo("Фото записано в базу", ProbationDataType.TEXT, chatId);
+    }
 }
+
+
