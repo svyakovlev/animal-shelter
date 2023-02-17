@@ -93,6 +93,10 @@ public class AskableServiceObjects {
         waitingResponses.put(chatId, response);
     }
 
+    public synchronized boolean isChatIdForResponse(long chatId) {
+        return waitingResponses.containsKey(chatId);
+    }
+
     public synchronized String getResponse(long chatId) {
         if (!waitingResponses.containsKey(chatId)) {
             // исключение

@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<Questionnaire name="setup_probation" interval="2">
+    <Question label="client-id">
+        <Content>Укажите идентификатор клиента</Content>
+        <Check>^[\d]+$</Check>
+        <Hint>Использовать можно только цифры</Hint>
+    </Question>
+    <Question label="pet-id">
+        <Content>Укажите идентификатор питомца</Content>
+        <Check>^[\d]+$</Check>
+        <Hint>Использовать можно только цифры</Hint>
+    </Question>
+    <Question label="number">
+        <Content>Укажите количество дней испытательного срока</Content>
+        <Check>^[1-9][0-9]?$</Check>
+        <Hint>Можно указать от 1 до 99 дней</Hint>
+    </Question>
+</Questionnaire>

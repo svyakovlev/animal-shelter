@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<Questionnaire name="finish_probation" interval="2">
+    <Question label="client-id">
+        <Content>Укажите идентификатор клиента</Content>
+        <Check>^[\d]+$</Check>
+        <Hint>Использовать можно только цифры</Hint>
+    </Question>
+    <Question label="pet-id">
+        <Content>Укажите идентификатор питомца</Content>
+        <Check>^[\d]+$</Check>
+        <Hint>Использовать можно только цифры</Hint>
+    </Question>
+    <Question label="success">
+        <Content>Испытательный срок пройден? (y/n)</Content>
+        <Check>^[y|n]{1}$</Check>
+        <Hint>Следует использовать один из символов 'y' (yes) или 'n' (no)</Hint>
+    </Question>
+    <Question label="message">
+        <Content>Напишите причину провала испытательного срока (при успешном окончании введите символ '-')</Content>
+    </Question>
+</Questionnaire>

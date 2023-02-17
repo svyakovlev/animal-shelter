@@ -13,11 +13,18 @@ public class AnimalShetlerProperties {
     @Value("${shetler.actions.questionnaire-folder}")
     private String nameQuestionnaireFolder;
 
+    @Value("${shetler.storage.full-path}")
+    private String pathStorage;
+
     public String getNameMenuFolder() {
         return nameMenuFolder;
     }
 
     public String getNameQuestionnaireFolder() {
         return nameQuestionnaireFolder;
+    }
+
+    public String getPathStorage() {
+        return pathStorage;
     }
 }

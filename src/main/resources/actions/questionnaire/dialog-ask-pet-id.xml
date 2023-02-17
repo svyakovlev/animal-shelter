@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<Questionnaire name="ask_pet_id" interval="2">
+    <Question label="pet-id">
+        <Content>Укажите идентификатор питомца</Content>
+        <Check>^[\d]+$</Check>
+        <Hint>Использовать можно только цифры</Hint>
+    </Question>
+</Questionnaire>

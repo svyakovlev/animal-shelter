@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<Menu name="menu_consultation" interval="5">
+    <ItemMenu label="1" name="1. Список документов для оформления питомца" command="paperwork"/>
+    <ItemMenu label="2" name="2. Правила знакомства с собакой до того, как ее забрать" command="rules_meet"/>
+    <ItemMenu label="3" name="3. Список рекомендаций по транспортировке животного" command="transportation"/>
+    <ItemMenu label="4" name="4. Советы кинолога по первичному общению с собакой" command="cynologist_advices"/>
+    <ItemMenu label="5" name="5. Рекомендации по проверенным кинологам для дальнейшего обращения к ним" command="cynologist_references"/>
+    <ItemMenu label="6" name="6. Список причин, почему могут отказать" command="refusal_causes"/>
+    <ItemMenu label="7" name="7. Список рекомендаций по обустройству дома">
+        <ItemMenu label="1" name="1. для щенка" command="puppy"/>
+        <ItemMenu label="2" name="2. для взрослой собаки" command="adult_dog"/>
+        <ItemMenu label="3" name="3. для собаки с ограниченными возможностями" command="handicapped_dog"/>
+    </ItemMenu>
+    <ItemMenu label="8" name="8. Позвать волонтера" command="chat"/>
+    <ItemMenu label="9" name="9. Заказать обратный звонок" command="phone_call"/>
+</Menu>
