@@ -1,10 +1,9 @@
 package com.teamwork.animalshelter.model;
 
-import net.bytebuddy.asm.Advice;
-
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Этот класс хранит в себе информацию об испытательном сроке усыновителя:
@@ -42,6 +41,9 @@ public class Probation {
     @OneToOne()
     @JoinColumn(name = "pet_id")
     private Pet pet;
+
+    @OneToMany(mappedBy = "probation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ProbationJournal> probationJournalRecords;
 
     public Probation() {}
 
@@ -115,6 +117,14 @@ public class Probation {
 
     public void setPet(Pet pet) {
         this.pet = pet;
+    }
+
+    public Set<ProbationJournal> getProbationJournalRecords() {
+        return probationJournalRecords;
+    }
+
+    public void setProbationJournalRecords(Set<ProbationJournal> probationJournal) {
+        this.probationJournalRecords = probationJournal;
     }
 
     @Override

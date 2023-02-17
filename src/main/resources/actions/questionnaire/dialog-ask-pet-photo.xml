@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<Questionnaire name="data_report" interval="5">
+<Questionnaire name="ask_pet_photo" interval="2">
     <Question label="pet-id">
         <Content>Укажите идентификатор питомца</Content>
         <Check>^[\d]+$</Check>
         <Hint>Использовать можно только цифры</Hint>
     </Question>
     <Question label="file-id">
-        <Content>Отправьте нужный файл (отправляйте, пожалуйста, по одному файлу за раз)</Content>
+        <Content>Отправьте фото питомца</Content>
     </Question>
 </Questionnaire>

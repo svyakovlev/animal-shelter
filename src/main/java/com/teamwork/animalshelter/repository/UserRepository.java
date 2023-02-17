@@ -22,4 +22,16 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     List<User> findUsersByVolunteerActiveIsTrue();
     Optional<User> findFirstByAdministratorIsTrueAndChatIdGreaterThan(long zero);
 
+    @Query(value = "select count(*) from client as c where c.chat_id = :chat and c.volunteer = true", nativeQuery = true)
+    Optional<Integer> isVolunteer(@Param("chat") long chatId);
+
+    @Query(value = "select count(*) from client as c where c.chat_id = :chat and c.administrator = true", nativeQuery = true)
+    Optional<Integer> isAdministrator(@Param("chat") long chatId);
+
+    @Query(value = "select count(*) from client as c where c.chat_id = :chat " +
+            "and (c.administrator = true or c.volunteer = true)", nativeQuery = true)
+    Optional<Integer> isEmployee(@Param("chat") long chatId);
+
+    @Query(value = "select count(*) from client as c where c.chat_id = :chat and c.volunteer_active = true", nativeQuery = true)
+    Optional<Integer> isActive(@Param("chat") long chatId);
 }
