@@ -4,9 +4,13 @@ import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.PhotoSize;
 import com.pengrad.telegrambot.model.Update;
+import com.pengrad.telegrambot.request.EditMessageText;
+import com.pengrad.telegrambot.response.SendResponse;
 import com.teamwork.animalshelter.action.AskableServiceObjects;
 import com.teamwork.animalshelter.concurrent.ShetlerThread;
 import com.teamwork.animalshelter.model.ProbationDataType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -22,6 +26,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     private final Map<String, String> volunteerCommands;
     private final Map<String, String> administratorCommands;
     private final Map<String, String> mainMenuCommands;
+    private final Logger logger = LoggerFactory.getLogger(TelegramBotUpdatesListener.class);
 
     public TelegramBotUpdatesListener(TelegramBot telegramBot,
                                       AskableServiceObjects askableServiceObjects,
@@ -93,6 +98,26 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                             }
                         }
                     }
+                }
+            } else if (update.callbackQuery() != null) {
+                long chatId = update.callbackQuery().message().chat().id();
+                int messageId = update.callbackQuery().message().messageId();
+                String buttonId = update.callbackQuery().data();
+
+                String text = "The choice is made";
+                EditMessageText message = new EditMessageText(chatId, messageId, text);
+
+                SendResponse response = (SendResponse) telegramBot.execute(message);
+                if (!response.isOk()) {
+                    logger.error("Error: message (EditMessageText) is not sent into chat <{}>", chatId);
+                }
+
+                if (askableServiceObjects.getResponse(chatId) == null) {
+                    botService.sendInfo("Выберите команду из главного меню", ProbationDataType.TEXT, chatId);
+                    return;
+                }
+                if (askableServiceObjects.getResponse(chatId).isEmpty()) {
+                    askableServiceObjects.addResponse(chatId, buttonId);
                 }
             }
         });
