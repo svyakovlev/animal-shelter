@@ -1,5 +1,7 @@
 package com.teamwork.animalshelter.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.util.Objects;
 
@@ -15,15 +17,17 @@ public class Contact {
 
     private String value;
 
-    @ManyToOne()
+    @ManyToOne
     @JoinColumn(name = "client_id")
+    @JsonIgnore
     private User user;
 
     public Contact() {}
 
-    public Contact(ContactType type, String value) {
+    public Contact(ContactType type, String value, User user) {
         this.type = type;
         this.value = value;
+        this.user = user;
     }
 
     public int getId() {

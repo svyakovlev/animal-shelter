@@ -7,7 +7,7 @@
     </Question>
     <Question label="number">
         <Content>Укажите количество последних записей для просмотра (1-59)</Content>
-        <Check>^[1-5][0-9]?$</Check>
+        <Check>^([1-9])$|^([1-5][0-9]{0,1})$</Check>
         <Hint>Можно указать от 1 до 59 дней</Hint>
     </Question>
 </Questionnaire>

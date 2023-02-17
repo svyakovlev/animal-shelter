@@ -108,7 +108,10 @@ public class ParserXML {
             if (currentElement == null) {
                 throw new ErrorElementXmlFile(ch, start, length);
             }
-            currentElement.setText(s);
+            String text = currentElement.getText();
+            if (text == null) text = s;
+            else text = text + s;
+            currentElement.setText(text);
         }
     }
 }

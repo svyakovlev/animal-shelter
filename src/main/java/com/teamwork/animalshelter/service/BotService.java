@@ -103,7 +103,7 @@ public class BotService {
         if (action == null) return;
         askableServiceObjects.addResponse(chatId, "");
         ask.setWaitingResponse(true);
-        String info = s.isEmpty() ? action : s + "\n" + action;
+        String info = s.isEmpty() ? action : s + "\n\n" + action;
         sendInfo(info, ProbationDataType.TEXT, chatId);
     }
 
@@ -145,7 +145,7 @@ public class BotService {
                         askableServiceObjects.removeResponse(chatId);
                         return resultInterrupted;
                     }
-                    Thread.sleep(2_000);
+                    Thread.sleep(1_000);
                 } else {
                     ask.setWaitingResponse(false);
                     askableServiceObjects.removeResponse(chatId);
@@ -155,8 +155,8 @@ public class BotService {
                         return resultInterrupted;
                     }
                     if (ask.verificationRequired() && !ask.checkResponse(response)) {
-                        s = "В вашем ответе была допущена ошибка: " + ask.getLastError() + "\n Введите ваш ответ еще раз (для выхода из команды отправьте '0')";
-                        sendInfo(s, ProbationDataType.TEXT, chatId);
+                        s = "В вашем ответе была допущена ошибка: \n" + ask.getLastError() + "\n Введите ваш ответ еще раз (для выхода из команды отправьте '0')";
+                        //sendInfo(s, ProbationDataType.TEXT, chatId);
                     } else {
                         ask.setResponse(response);
                     }

@@ -6,6 +6,6 @@
         <Hint>Использовать можно только цифры</Hint>
     </Question>
     <Question label="file-id">
-    <Content>Отправьте нужный файл (отправляйте, пожалуйста, по одному файлу за раз)</Content>
-</Question>
+        <Content>Отправьте нужный файл (отправляйте, пожалуйста, по одному файлу за раз)</Content>
+    </Question>
 </Questionnaire>

@@ -29,13 +29,13 @@ public class User {
     @Column(name = "time_zone")
     private String timeZone;
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "user", orphanRemoval = true, cascade = CascadeType.ALL)
     private Set<Contact> contacts;
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "user", cascade = CascadeType.ALL)
     private Set<Support> supportRecordsByUser;
 
-    @OneToMany(mappedBy = "volunteer")
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "volunteer", cascade = CascadeType.ALL)
     private Set<Support> supportRecordsByVolunteer;
 
     public User() {}

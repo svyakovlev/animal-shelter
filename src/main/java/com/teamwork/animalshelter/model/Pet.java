@@ -30,7 +30,7 @@ public class Pet {
     @Column(name = "looking_for_owner")
     private Boolean lookingForOwner;
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "pet")
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "pet", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<PhotoPets> photoPets;
 
     public Pet() {}

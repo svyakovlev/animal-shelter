@@ -42,9 +42,9 @@ public class TelegramBotConfiguration {
         commands.put("/state", "Текущее состояние активности");
         commands.put("/active", "Перевести в активное состояние");
         commands.put("/busy", "Перевести в занятое состояние");
-        commands.put("/get_client", "Получить информацию о клиенте по id");
-        commands.put("/find_client", "Получить информацию о клиенте по телефону");
-        commands.put("/get_client_probation", "Найти записи об испытательном сроке по id");
+        commands.put("/get_user", "Получить информацию о клиенте по id");
+        commands.put("/find_user", "Получить информацию о клиенте по телефону");
+        commands.put("/get_user_probation", "Найти записи об испытательном сроке по id");
         commands.put("/message", "Отправить предупреждение пользователю");
         commands.put("/transfer", "Назначить испытательный срок");
         commands.put("/prolongation", "Продлить испытательный срок");

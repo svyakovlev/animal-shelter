@@ -37,7 +37,7 @@ public class AdministratorController {
 
     @ExceptionHandler(ServiceException.class)
     public String handleException(ServiceException e) {
-        String result = e.getMessage() + "<br><br>Содержимое ResponseStatus: " + e.getClass().getAnnotation(ResponseStatus.class).value();
+        String result = e.getMessage() + "\nСодержимое ResponseStatus: " + e.getClass().getAnnotation(ResponseStatus.class).value();
         return result;
     }
 }

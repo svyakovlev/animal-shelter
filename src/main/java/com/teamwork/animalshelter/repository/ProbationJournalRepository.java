@@ -15,7 +15,7 @@ public interface ProbationJournalRepository extends JpaRepository<ProbationJourn
 
     @Query(value = "select * from probation_journal pj " +
             "where (pj.date >= current_date) " +
-            "and (pj.date <= (current_timestamp - interval('1 hour')))", nativeQuery = true)
+            "and (pj.date <= (current_timestamp - interval '1 hour'))", nativeQuery = true)
     List<ProbationJournal> getJournalRecordsOnIncompleteReport();
     Optional<ProbationJournal> findProbationJournalByProbationEqualsAndDateAfterAndDateBefore(Probation probation, LocalDateTime beginDay, LocalDateTime endDay);
     List<ProbationJournal> findAllByProbationEqualsOrderByDateDesc(Probation probation);
