@@ -1219,15 +1219,15 @@ public class UserService {
         if (questionnaire.containsKey("interrupt")) return;
         Integer petId = Integer.parseInt(questionnaire.get("pet-id"));
         String[] fileIdAdnFileName = questionnaire.get("file-id").split("::");
-        if (fileIdAdnFileName.length != 2) {
-            logger.error("Неверно передан параметр для загрузки файла: " + fileIdAdnFileName);
-            botService.sendInfo("Передача файла прервана из-за внутренней ошибки.", ProbationDataType.TEXT, chatId);
-            return;
-        }
 
         Pet pet = petRepository.findById(petId).orElse(null);
         if (pet == null) {
             botService.sendInfo("Питомца с указанным идентификатором не существует", ProbationDataType.TEXT, chatId);
+            return;
+        }
+        if (fileIdAdnFileName.length != 2) {
+            logger.error("Неверно передан параметр для загрузки файла: " + fileIdAdnFileName);
+            botService.sendInfo("Передача файла прервана из-за внутренней ошибки.", ProbationDataType.TEXT, chatId);
             return;
         }
         String relativePath = "pets/" + String.valueOf(pet.getId()) + "/" + fileIdAdnFileName[1];
@@ -1235,14 +1235,15 @@ public class UserService {
             logger.error(String.format("Ошибка загрузки файла из telegram: file_id: %s, relativePath: %s", fileIdAdnFileName[0], relativePath));
             return;
         }
-
         Set<PhotoPets> photoPets = pet.getPhotoPets();
         if (photoPets == null) {
             photoPets = new HashSet<>();
             pet.setPhotoPets(photoPets);
         }
         PhotoPets photo = new PhotoPets(relativePath);
+        photo.setPet(pet);
         photoPets.add(photo);
+
         petRepository.save(pet);
         botService.sendInfo("Фото записано в базу", ProbationDataType.TEXT, chatId);
     }

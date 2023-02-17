@@ -238,6 +238,7 @@ public class AskableServiceObjects {
         Queue<String> queue = queueChat.get(chatId);
         if (queue == null) {
             queue = new ArrayDeque<>();
+            queueChat.put(chatId, queue);
         }
         queue.offer(message);
     }

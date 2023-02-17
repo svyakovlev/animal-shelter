@@ -17,7 +17,7 @@ public class PhotoPets {
     private Integer id;
     private String photo;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "pet_id")
     private Pet pet;
 
