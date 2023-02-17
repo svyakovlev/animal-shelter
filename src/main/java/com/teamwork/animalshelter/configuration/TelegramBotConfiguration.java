@@ -1,14 +1,18 @@
 package com.teamwork.animalshelter.configuration;
 
 import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.model.BotCommand;
 import com.pengrad.telegrambot.model.DeleteMyCommands;
+import com.pengrad.telegrambot.request.SetMyCommands;
 import com.teamwork.animalshelter.action.AskableServiceObjects;
 import com.teamwork.animalshelter.parser.ParserXML;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Configuration
@@ -21,6 +25,14 @@ public class TelegramBotConfiguration {
     public TelegramBot telegramBot() {
         TelegramBot bot = new TelegramBot(token);
         bot.execute(new DeleteMyCommands());
+
+        Map<String, String> menuCommands = getMainMenuCommands();
+        List<BotCommand> commands = new ArrayList<>();
+        for (Map.Entry<String, String> entry : menuCommands.entrySet()) {
+            commands.add(new BotCommand(entry.getKey(), entry.getValue()));
+        }
+        BotCommand[] botCommands = commands.toArray(new BotCommand[commands.size()]);
+        bot.execute(new SetMyCommands(botCommands));
         return bot;
     }
 

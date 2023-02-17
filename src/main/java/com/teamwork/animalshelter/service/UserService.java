@@ -482,6 +482,8 @@ public class UserService {
                     result = botService.startAction("menu_choose_pet", chatId);
                     runMenuCommand(result, chatId);
                     break;
+                case "/volunteer":
+                    wantToBecomeVolunteer(chatId);
                 case "/call":
                     runMenuCommand(Map.of("command", "empty"), chatId);
                     break;
