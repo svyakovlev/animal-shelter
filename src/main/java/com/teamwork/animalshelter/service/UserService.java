@@ -74,36 +74,40 @@ public class UserService {
     }
 
     public void wantToBecomeVolunteer(long chatId) throws InterruptedException {
-        Map<String, String> replayMessage;
-        replayMessage = botService.startAction("data_user", chatId);
-
-        if (replayMessage.containsKey("interrupt")) {
-            return;
+        User user = userRepository.findUserByChatId(chatId).orElse(null);
+        boolean isRequiredDataUser = true;
+        if (user != null) {
+            String phones = getTelephonesByUser(user);
+            if (!phones.isEmpty()) {
+                String message = String.format("Найден пользователь с привязкой к данному чату." +
+                        "\nИмя: %s \nТелефоны: %s", user.getName(), phones);
+                botService.sendInfo(message, ProbationDataType.TEXT, chatId);
+                Map<String, String> result = botService.startAction("verify_data_user", chatId);
+                if (result.containsKey("interrupt")) return;
+                if (result.containsKey("answer") && result.get("answer").equals("y")) isRequiredDataUser = false;
+            }
         }
+        if (isRequiredDataUser) {
+            Map<String, String> result = botService.startAction("data_user", chatId);
+            if (result.containsKey("interrupt")) return;
+            String name = result.get("name");
+            String phone = result.get("telephone");
 
-        User user = findUserByChatId(chatId);
+            if (phone.length() == 10) phone = "7" + phone;
+            else if (phone.length() == 12) phone = phone.substring(1);
 
-        if (user == null) {
-            user = findUserByPhoneNumber(replayMessage.get("telephone"));
+            if (!replaceUserNameAndPhone(user, name, phone, chatId)) {
+                botService.sendInfo("Произошла ошибка записи данных. Выполнение команды пришлось прервать. " +
+                        "Сообщите, пожалуйста, об ошибке в тех.поддержку", ProbationDataType.TEXT, chatId);
+                return;
+            }
+            user = userRepository.findUserByChatId(chatId).orElse(null);
+            if (user == null) {
+                botService.sendInfo("Произошла ошибка записи данных. Выполнение команды пришлось прервать. " +
+                        "Сообщите, пожалуйста, об ошибке в тех.поддержку", ProbationDataType.TEXT, chatId);
+                return;
+            }
         }
-        if (user == null) {
-            user = new User();
-        }
-        user.setChatId(chatId);
-        user.setName(replayMessage.get("name"));
-
-        String phone = replayMessage.get("telephone");
-        if (phone.length() == 10) phone = "7" + phone;
-        else if (phone.length() == 12) phone = phone.substring(1);
-
-        Contact contact = new Contact();
-
-        contact.setUser(user);
-        contact.setType(ContactType.TELEPHONE);
-        contact.setValue(phone);
-
-        userRepository.saveAndFlush(user);
-        contactRepository.saveAndFlush(contact);
 
         List<User> freeAdministrators = userRepository.findUsersByAdministratorIsTrueAndVolunteerActiveIsTrue();
 
