@@ -13,6 +13,7 @@ import java.net.URL;
 
 @Component
 @PropertySource("classpath:application.properties")
+//public class QuestionnaireFactory {
 public class QuestionnaireFactory {
     private final AnimalShetlerProperties properties;
     private final ParserXML parserXML;
