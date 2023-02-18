@@ -261,7 +261,7 @@ public class BotService {
     /**
      * Отправляет сообщение пользователю, котоое было подготовлено сотрудником.
      */
-    @Scheduled(cron = "0 0 0/1 * * *")
+    @Scheduled(cron = "0 0 9-20/1 * * *")
     public void sendMessageOnProbation() {
         List<Probation> probations = probationRepository.getActiveProbationsWithMessages();
         if (probations == null) return;

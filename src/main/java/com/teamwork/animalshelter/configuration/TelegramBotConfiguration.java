@@ -85,7 +85,7 @@ public class TelegramBotConfiguration {
         commands.put("/chat", "Позвать волонтера в чат");
         commands.put("/volunteer", "Хочу стать волонтером");
         commands.put("/show", "Для сотрудников");
-        commands.put("/show_chat_id", "-");
+        commands.put("/show_chat_id", "Отобразить ваш идентификатор чата");
         return commands;
     }
 

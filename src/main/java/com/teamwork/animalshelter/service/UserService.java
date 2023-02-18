@@ -216,10 +216,12 @@ public class UserService {
                             "Предупреждение не может быть отправлено.", ProbationDataType.TEXT, volunteerChatId);
             return;
         }
-        if (!probation.getMessage().isEmpty()) {
-            botService.sendInfo("Для пользователя уже имеется сообщение. Повторите отправку своего предупреждения позднее.",
-                    ProbationDataType.TEXT, volunteerChatId);
-            return;
+        if (probation.getMessage() != null ) {
+            if (!probation.getMessage().isEmpty()) {
+                botService.sendInfo("Для пользователя уже имеется сообщение. Повторите отправку своего предупреждения позднее.",
+                        ProbationDataType.TEXT, volunteerChatId);
+                return;
+            }
         }
         probation.setMessage(message);
         probationRepository.saveAndFlush(probation);
@@ -399,7 +401,7 @@ public class UserService {
      *
      * @throws NotFoundAdministrator вызывается в случае, когда в базе нет ни одного администратора.
      */
-    @Scheduled(cron = "0 0 9/24 * * *")
+    @Scheduled(cron = "0 0 9 * * *")
     public void remindAboutReportProblem() {
         List<Probation> probations = probationRepository.getProbationsOnReportProblem();
         if (probations == null) return;
@@ -409,7 +411,7 @@ public class UserService {
     /**
      * Отправляет волонтерам сообщения с требованием принять решение по испытательному сроку.
      */
-    @Scheduled(cron = "0 0 12/24 * * *")
+    @Scheduled(cron = "0 0 12 * * *")
     public void checkFinishProbation() {
         List<Probation> probations = probationRepository.findProbationByDateFinishBeforeAndSuccessIsFalseAndResultEquals(LocalDateTime.now(), "");
         if (probations == null) return;
@@ -514,6 +516,18 @@ public class UserService {
                     break;
                 case "/get_user_probation":
                     getInfoByProbationId(chatId);
+                    break;
+                case "/transfer":
+                    transferPet(chatId);
+                    break;
+                case "/prolongation":
+                    prolongationByVolunteer(chatId);
+                    break;
+                case "/finish_probation":
+                    finishProbationByVolunteer(chatId);
+                    break;
+                case "/message":
+                    prepareWarningByVolunteer(chatId);
                     break;
 
                 case "/add_pet":
@@ -777,14 +791,26 @@ public class UserService {
             probationJournal = new ProbationJournal(currentDateTime, photoReceived, documentReceived);
             probationJournal.setProbation(probation);
         } else {
-            probationJournal.setPhotoReceived(photoReceived);
-            probationJournal.setReportReceived(documentReceived);
+            probationJournal.setPhotoReceived(photoReceived || probationJournal.isPhotoReceived());
+            probationJournal.setReportReceived(documentReceived || probationJournal.isReportReceived());
         }
         ProbationData probationData = new ProbationData(type, relativePath, probationJournal);
         Set<ProbationData> dataSet = probationJournal.getProbationDataSet();
-        if (dataSet == null) dataSet = new HashSet<>();
+        if (dataSet == null) {
+            dataSet = new HashSet<>();
+            probationJournal.setProbationDataSet(dataSet);
+        }
         dataSet.add(probationData);
         probationJournalRepository.save(probationJournal);
+        String message = "";
+        if (type == ProbationDataType.PHOTO) {
+            message = "Ваша фотография принята.";
+        } else if (type == ProbationDataType.DOCUMENT) {
+            message = "Ваш отчет принят.";
+        }
+        if (!message.isEmpty()) {
+            botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
+        }
     }
 
     public void choosePet(long userChatId) throws InterruptedException {
@@ -819,6 +845,12 @@ public class UserService {
                         "Сообщите, пожалуйста, об ошибке в тех.поддержку", ProbationDataType.TEXT, userChatId);
                 return;
             }
+            user = userRepository.findUserByChatId(userChatId).orElse(null);
+            if (user == null) {
+                botService.sendInfo("Произошла ошибка записи данных. Выполнение команды пришлось прервать. " +
+                        "Сообщите, пожалуйста, об ошибке в тех.поддержку", ProbationDataType.TEXT, userChatId);
+                return;
+            }
         }
         Map<String, String> result = botService.startAction("ask_pet_id", userChatId);
         if (result.containsKey("interrupt")) return;
@@ -843,7 +875,7 @@ public class UserService {
         }
         result = botService.startAction("verify_pet_id", userChatId);
         if (result.containsKey("interrupt")) return;
-        if (result.get("answer").equals("n")) {
+        if (result.get("answer").equalsIgnoreCase("n")) {
             String message = "Для выбора другого питомца следует запустить команду заново.";
             botService.sendInfo(message, ProbationDataType.TEXT, userChatId);
             return;
@@ -965,9 +997,11 @@ public class UserService {
         probation = new Probation(beginDate, beginDate.plusDays(number), false, user, pet);
         probationRepository.save(probation);
 
-        botService.sendInfo("Испытательный срок успешно назначен.", ProbationDataType.TEXT, volunteerChatId);
+        String beginDateString = beginDate.toLocalDate().toString() + " " + beginDate.toLocalTime().toString();
+        String endDateString = probation.getDateFinish().toLocalDate().toString() + " " + probation.getDateFinish().toLocalTime().toString();
+        botService.sendInfo(String.format("Испытательный срок (id = %d) успешно назначен.", probation.getId()), ProbationDataType.TEXT, volunteerChatId);
         String message = String.format("%s, вам назначен испытательный срок по питомцу %s с %s по %s.",
-                user.getName(), pet.getNickname(), probation.getDateBegin().toString(), probation.getDateFinish().toString());
+                user.getName(), pet.getNickname(), beginDateString, endDateString);
         botService.sendInfo(message, ProbationDataType.TEXT, user.getChatId());
     }
 

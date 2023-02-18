@@ -62,11 +62,12 @@ public class UserServiceTest {
     @MockBean
     private ProbationJournalRepository probationJournalRepository;
 
-    @MockBean
+    @MockBean(name = "volunteerCommands")
     private Map<String, String> volunteerCommands;
 
-    @MockBean
+    @MockBean(name = "administratorCommands")
     private Map<String, String> administratorCommands;
+
 
     @MockBean
     private PetRepository petRepository;
