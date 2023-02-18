@@ -236,7 +236,7 @@ public class Questionnaire implements Askable{
     }
 
     @Override
-    public String nextAction() {
+    public Object nextAction() {
         if (empty()) return null;
         return currentQuestion.getQuestion();
     }

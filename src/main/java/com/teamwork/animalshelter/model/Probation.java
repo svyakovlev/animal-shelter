@@ -42,7 +42,7 @@ public class Probation {
     @JoinColumn(name = "pet_id")
     private Pet pet;
 
-    @OneToMany(mappedBy = "probation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "probation", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ProbationJournal> probationJournalRecords;
 
     public Probation() {}

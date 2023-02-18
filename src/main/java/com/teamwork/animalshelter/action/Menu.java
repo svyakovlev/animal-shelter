@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.pengrad.telegrambot.model.request.InlineKeyboardButton;
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup;
 import com.teamwork.animalshelter.exception.ErrorMenu;
 import com.teamwork.animalshelter.exception.NotFoundAttributeXmlFile;
 import com.teamwork.animalshelter.exception.NotFoundElementXmlFile;
@@ -156,7 +158,7 @@ public class Menu implements Askable{
     }
 
     @Override
-    public String nextAction() {
+    public Object nextAction() {
         if (itemMenu.getChilds().size() == 0) {
             if (!isCommand()) {
                 throw new ErrorMenu(getName(), "Конечный пункт меню должен содержать команду");
@@ -167,13 +169,13 @@ public class Menu implements Askable{
                 throw new ErrorMenu(getName(), "Промежуточный пункт меню НЕ должен содержать команду");
             }
         }
-        StringBuilder result = new StringBuilder();
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<ItemMenu> childs = itemMenu.getChilds();
         for(int i=0; i < childs.size(); i++) {
-            result.append(childs.get(i).getName());
-            result.append('\n');
+            InlineKeyboardButton button = new InlineKeyboardButton(childs.get(i).getName()).callbackData(childs.get(i).getLabel());
+            inlineKeyboardMarkup.addRow(button);
         }
-        return result.toString();
+        return inlineKeyboardMarkup;
     }
 
     @Override
