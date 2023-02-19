@@ -236,7 +236,7 @@ public class BotService {
      *     <li>было отправлено только что-то одно: форма отчета или фотографии</li>
      * </ul>
      */
-    @Scheduled(cron = "* * 9-20/2 * * *")
+    @Scheduled(cron = "0 0 9-20/2 * * *")
     public void remindAboutReport() {
         List<ProbationJournal> records = probationJournalRepository.getJournalRecordsOnIncompleteReport();
         if (records == null) return;
