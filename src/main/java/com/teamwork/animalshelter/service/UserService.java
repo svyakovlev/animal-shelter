@@ -121,7 +121,7 @@ public class UserService {
         message = "Идет поиск свободных администраторов. Пожалуйста, подождите... (время ожидания не более 5 минут)";
         botService.sendInfo(message, ProbationDataType.TEXT, chatId);
 
-        message = String.format("Пользователь %s хочеть стать волонтером. Возьмете в работу?", user.getName() );
+        message = String.format("Пользователь %s хочеть стать волонтером. Возьмете в работу?", user.getName());
         Long administratorChatId = startConcurrentQuery(chatId, freeAdministrators, message, 5);
 
         if (administratorChatId == null) {
@@ -150,13 +150,14 @@ public class UserService {
      *     <li>{@code /y}</li>
      *     <li>{@code /да}</li>
      * </ul>
+     *
      * @param userChatId идентификатор чата пользователя
-     * @param employees список свободных сотрудников
-     * @param message сообщение, отправляемое сотрудникам
-     * @param minutes интервал ожидания (в минутах), в течение которого будет ожидаться ответ от сотрудников
+     * @param employees  список свободных сотрудников
+     * @param message    сообщение, отправляемое сотрудникам
+     * @param minutes    интервал ожидания (в минутах), в течение которого будет ожидаться ответ от сотрудников
      * @return идентификатор чата сотрудника, который выразил готовность работать с данным пользователем
      */
-    private Long startConcurrentQuery (long userChatId, List<User> employees, String message, int minutes) throws InterruptedException {
+    private Long startConcurrentQuery(long userChatId, List<User> employees, String message, int minutes) throws InterruptedException {
         for (User employee : employees) {
             if (employee.getChatId() == 0) {
                 throw new NotFoundChatId(employee.getId());
@@ -199,6 +200,7 @@ public class UserService {
 
     /**
      * Функция записывает предупреждение волонтера в БД. Бот в дальнейшем отправит это предупреждение пользователю.
+     *
      * @param volunteerChatId идентификатор чата волонтера
      * @throws InterruptedException
      */
@@ -217,10 +219,10 @@ public class UserService {
         }
         if (LocalDateTime.now().isAfter(probation.getDateFinish())) {
             botService.sendInfo("По указанным идентификаторам пользователя и питомца испытательный срок окончен." +
-                            "Предупреждение не может быть отправлено.", ProbationDataType.TEXT, volunteerChatId);
+                    "Предупреждение не может быть отправлено.", ProbationDataType.TEXT, volunteerChatId);
             return;
         }
-        if (probation.getMessage() != null ) {
+        if (probation.getMessage() != null) {
             if (!probation.getMessage().isEmpty()) {
                 botService.sendInfo("Для пользователя уже имеется сообщение. Повторите отправку своего предупреждения позднее.",
                         ProbationDataType.TEXT, volunteerChatId);
@@ -236,6 +238,7 @@ public class UserService {
     /**
      * Возвращает все телефоны пользователя в одной строке через запятую.
      * Если нет ни одного телефона, то возвращается пустая строка.
+     *
      * @param user пользователь
      * @return телефоны пользователя
      */
@@ -283,6 +286,7 @@ public class UserService {
 
     /**
      * функция реализует решение волонтера окончить испытательный срок.
+     *
      * @param volunteerChatId идентификатор чата волонтера
      * @throws InterruptedException
      */
@@ -307,7 +311,7 @@ public class UserService {
             probation.setSuccess(true);
         } else {
             String regret = String.format("%s, к сожалению испытательный срок не пройден.\n" + message + "\nПо " +
-                            "дальнейшим вашим шагам с Вами свяжутся.", probation.getUser().getName());
+                    "дальнейшим вашим шагам с Вами свяжутся.", probation.getUser().getName());
             botService.sendInfo(regret, ProbationDataType.TEXT, userChatId);
             probation.setResult(message);
         }
@@ -316,6 +320,7 @@ public class UserService {
 
     /**
      * функция реализует решение волонтера продлить испытательный срок.
+     *
      * @param volunteerChatId идентификатор чата волонтера
      * @throws InterruptedException
      */
@@ -345,6 +350,7 @@ public class UserService {
     /**
      * Функция реализует команду "Позвать волонтера". Если находится свободный волонтер, и он готов
      * общаться с пользователем, то запускается чат, в котором бот выступает посредником.
+     *
      * @param userChatId идентификатор чата пользователя
      * @throws InterruptedException
      */
@@ -491,7 +497,7 @@ public class UserService {
                 case "/volunteer":
                     wantToBecomeVolunteer(chatId);
                 case "/call":
-                    runMenuCommand(Map.of("command", "empty"), chatId);
+                    callBackOrder(chatId);
                     break;
                 case "/chat":
                     callVolunteer(chatId);
@@ -660,7 +666,7 @@ public class UserService {
                 callVolunteer(chatId);
                 break;
             case "phone_call":
-                botService.sendInfo("Эта команда находится в разработке", ProbationDataType.TEXT, chatId);
+                callBackOrder(chatId);
                 break;
             case "empty":
                 botService.sendInfo("Эта команда находится в разработке", ProbationDataType.TEXT, chatId);
@@ -969,6 +975,7 @@ public class UserService {
 
     /**
      * Создает испытательный срок для клиента, указанного волонтером.
+     *
      * @param volunteerChatId идентификатор чата волонтера
      * @throws InterruptedException
      */
@@ -1011,6 +1018,7 @@ public class UserService {
 
     /**
      * Отображает данные по питомцам, которые еще не нашли хозяев.
+     *
      * @param userChatId идентификатор чата пользователя.
      * @throws InterruptedException
      */
@@ -1095,7 +1103,7 @@ public class UserService {
         if (!result) {
             botService.sendInfo("Эта команда вам недоступна", ProbationDataType.TEXT, chatId);
         }
-        return  result;
+        return result;
     }
 
     private boolean isActiveState(long chatId) {
@@ -1142,7 +1150,7 @@ public class UserService {
             } else {
                 botService.sendInfo("К сожалению вы больше не являетесь волонтером.", ProbationDataType.TEXT, user.getChatId());
             }
-        } catch (Exception e){
+        } catch (Exception e) {
             logger.error("В функции setVolunteerPosition() произошло исключение: " + e.getMessage() + " (" + e.getClass() + ")");
             askableServiceObjects.resetServiceObjects(chatId);
             botService.sendInfo("Произошла внутренняя ошибка. Команда будет прервана. " +
@@ -1287,6 +1295,88 @@ public class UserService {
         petRepository.save(pet);
         botService.sendInfo("Фото записано в базу", ProbationDataType.TEXT, chatId);
     }
+
+    /**
+     * Функция заказа обратного звонка
+     */
+    public void callBackOrder(Long chatId) throws InterruptedException {
+        User user = userRepository.findUserByChatId(chatId).orElse(null);
+        boolean isRequiredDataUser = true;
+        if (user != null) {
+            String phones = getTelephonesByUser(user);
+            if (!phones.isEmpty()) {
+                String message = String.format("Найден пользователь с привязкой к данному чату." +
+                        "\nИмя: %s \nТелефоны: %s", user.getName(), phones);
+                botService.sendInfo(message, ProbationDataType.TEXT, chatId);
+                Map<String, String> result = botService.startAction("verify_data_user", chatId);
+                if (result.containsKey("interrupt")) return;
+                if (result.containsKey("answer") && result.get("answer").equals("y")) isRequiredDataUser = false;
+            }
+        }
+        if (isRequiredDataUser) {
+            Map<String, String> result = botService.startAction("data_user", chatId);
+            if (result.containsKey("interrupt")) return;
+            String name = result.get("name");
+            String phone = result.get("telephone");
+
+            if (phone.length() == 10) phone = "7" + phone;
+            else if (phone.length() == 12) phone = phone.substring(1);
+
+            if (!replaceUserNameAndPhone(user, name, phone, chatId)) {
+                botService.sendInfo("Произошла ошибка записи данных. Выполнение команды пришлось прервать. " +
+                        "Сообщите, пожалуйста, об ошибке в тех.поддержку", ProbationDataType.TEXT, chatId);
+                return;
+            }
+            user = userRepository.findUserByChatId(chatId).orElse(null);
+            if (user == null) {
+                botService.sendInfo("Произошла ошибка записи данных. Выполнение команды пришлось прервать. " +
+                        "Сообщите, пожалуйста, об ошибке в тех.поддержку", ProbationDataType.TEXT, chatId);
+                return;
+            }
+        }
+
+        List<User> freeVolunteers = userRepository.findUsersByVolunteerActiveIsTrue();
+
+        String message = "";
+        if (freeVolunteers == null) {
+            message = "Нет свободных волонтеров. Укажите дату для обратного звонка.";
+            botService.sendInfo(message, ProbationDataType.TEXT, chatId);
+            return;
+        }
+
+        message = "Идет поиск свободных волонтеров. Пожалуйста, подождите... (время ожидания не более 1 минуты)";
+        botService.sendInfo(message, ProbationDataType.TEXT, chatId);
+
+        message = String.format("Пользователь %s заказал обратный звонок. Сможете позвонить?", user.getName());
+        Long volunteerChatId = startConcurrentQuery(chatId, freeVolunteers, message, 1);
+
+        if (volunteerChatId == null) {
+            message = "Нет свободных волонтеров. Укажите дату для обратного звонка.";
+            botService.sendInfo(message, ProbationDataType.TEXT, chatId);
+            return;
+        }
+
+        for (User volunteer : freeVolunteers) {
+            if (volunteer.getChatId() == volunteerChatId) {
+                volunteer.setVolunteerActive(false);
+                userRepository.saveAndFlush(volunteer);
+                message = "Вам назначен волонтер, он позвонит в ближайшее время.";
+                botService.sendInfo(message, ProbationDataType.TEXT, chatId);
+                break;
+            }
+        }
+
+        Support callTime = new Support();
+        callTime.setType(SupportType.CALL);
+        callTime.setUser(findUserByChatId(chatId));
+//        callTime.setBeginDateTime();
+        callTime.setVolunteer(findUserByChatId(volunteerChatId));
+
+        supportRepository.save(callTime);
+
+    }
+
 }
+
 
 
