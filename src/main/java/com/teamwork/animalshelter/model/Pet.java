@@ -103,7 +103,7 @@ public class Pet {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Pet pet)) return false;
-        return Objects.equals(getId(), pet.getId()) && Objects.equals(getNickname(), pet.getNickname()) && Objects.equals(getBreed(), pet.getBreed()) && Objects.equals(getBirthday(), pet.getBirthday()) && Objects.equals(getCharacter(), pet.getCharacter()) && Objects.equals(getLookingForOwner(), pet.getLookingForOwner());
+        return Objects.equals(getNickname(), pet.getNickname()) && Objects.equals(getBreed(), pet.getBreed()) && Objects.equals(getBirthday(), pet.getBirthday()) && Objects.equals(getCharacter(), pet.getCharacter()) && Objects.equals(getLookingForOwner(), pet.getLookingForOwner());
     }
 
     @Override

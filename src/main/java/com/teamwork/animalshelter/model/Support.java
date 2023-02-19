@@ -33,11 +33,9 @@ public class Support {
 
     public Support() {}
 
-    public Support(SupportType type, LocalDateTime beginDateTime, LocalDateTime finishDateTime, boolean finish, User user, User volunteer) {
+    public Support(SupportType type, LocalDateTime beginDateTime, User user, User volunteer) {
         this.type = type;
         this.beginDateTime = beginDateTime;
-        this.finishDateTime = finishDateTime;
-        this.finish = finish;
         this.user = user;
         this.volunteer = volunteer;
     }

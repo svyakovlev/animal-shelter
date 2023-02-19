@@ -1300,6 +1300,13 @@ public class UserService {
      * Функция заказа обратного звонка
      */
     public void callBackOrder(Long chatId) throws InterruptedException {
+        List<User> volunteers = userRepository.findUsersByVolunteerIsTrue();
+        if (volunteers.isEmpty()) {
+            logger.error("В базе нет ни одного волонтера");
+            botService.sendInfo("Заказ обратного звонка пока не возможен.", ProbationDataType.TEXT, chatId);
+            return;
+        }
+
         User user = userRepository.findUserByChatId(chatId).orElse(null);
         boolean isRequiredDataUser = true;
         if (user != null) {
@@ -1341,6 +1348,12 @@ public class UserService {
         if (freeVolunteers == null) {
             message = "Нет свободных волонтеров. Укажите дату для обратного звонка.";
             botService.sendInfo(message, ProbationDataType.TEXT, chatId);
+            LocalDateTime beginDateTime = getDialogDateTime(chatId);
+            if (beginDateTime == null) return;
+            if (!prepareEvent(user, volunteers.get(0), beginDateTime, SupportType.CALL)) {
+                logger.error("Ошибка записи события в базу данных (callBackOrder())");
+                botService.sendInfo("Ошибка записи события в базу данных", ProbationDataType.TEXT, chatId);
+            }
             return;
         }
 
@@ -1353,6 +1366,12 @@ public class UserService {
         if (volunteerChatId == null) {
             message = "Нет свободных волонтеров. Укажите дату для обратного звонка.";
             botService.sendInfo(message, ProbationDataType.TEXT, chatId);
+            LocalDateTime beginDateTime = getDialogDateTime(chatId);
+            if (beginDateTime == null) return;
+            if (!prepareEvent(user, volunteers.get(0), beginDateTime, SupportType.CALL)) {
+                logger.error("Ошибка записи события в базу данных (callBackOrder())");
+                botService.sendInfo("Ошибка записи события в базу данных", ProbationDataType.TEXT, chatId);
+            }
             return;
         }
 
@@ -1362,18 +1381,42 @@ public class UserService {
                 userRepository.saveAndFlush(volunteer);
                 message = "Вам назначен волонтер, он позвонит в ближайшее время.";
                 botService.sendInfo(message, ProbationDataType.TEXT, chatId);
+                message = getAllInfoByUser(user);
+                botService.sendInfo(message, ProbationDataType.TEXT, volunteerChatId);
                 break;
             }
         }
+    }
 
+    private boolean prepareEvent(User user, User volunteer, LocalDateTime dateTime, SupportType type) {
         Support callTime = new Support();
-        callTime.setType(SupportType.CALL);
-        callTime.setUser(findUserByChatId(chatId));
-//        callTime.setBeginDateTime();
-        callTime.setVolunteer(findUserByChatId(volunteerChatId));
+        callTime.setType(type);
+        callTime.setUser(user);
+        callTime.setVolunteer(volunteer);
+        callTime.setBeginDateTime(dateTime);
+        callTime = supportRepository.save(callTime);
+        if (callTime != null) {
+            String message = String.format("Вам назначено событие '%1$s' на %2$td-%2$tm-%2$tY %2$tH:%2$tM", type.getName(), dateTime);
+            botService.sendInfo(message, ProbationDataType.TEXT, user.getChatId());
+        }
+        return callTime != null;
+    }
 
-        supportRepository.save(callTime);
-
+    private LocalDateTime getDialogDateTime(long chatId) throws InterruptedException {
+        Map<String, String> result = botService.startAction("ask_date_time_support", chatId);
+        if (result.containsKey("interrupt")) return null;
+        String dateTimeString = result.get("date") + " " + result.get("time");
+        LocalDateTime dateTime = null;
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            dateTime = LocalDateTime.parse(dateTimeString, formatter);
+        } catch (DateTimeParseException e) {
+            logger.error(String.format("Ошибка парсинга даты из строки '%s'; %s", dateTimeString, e.getMessage()));
+            botService.sendInfo("Ошибка при обработке вашего ответа. Команда будет прервана. ",
+                    ProbationDataType.TEXT, chatId);
+            return null;
+        }
+        return dateTime;
     }
 
 }

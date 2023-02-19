@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<Questionnaire name="ask_date_time_support" interval="2">
+    <Question label="date">
+        <Content>Укажите дату события в формате дд/MM/гггг</Content>
+        <Check>((([0-2][\d])|(3[0-1]))\/([0][\d]|1[0-2])\/(19|20)\d\d)</Check>
+        <Hint>Дата вводится в формате дд/MM/гггг.</Hint>
+    </Question>
+    <Question label="time">
+        <Content>Укажите время события в формате чч:мм</Content>
+        <Check>([0-1][\d]|2[0-3]):([0-5][\d])</Check>
+        <Hint>Дата вводится в формате чч:мм.</Hint>
+    </Question>
+</Questionnaire>
