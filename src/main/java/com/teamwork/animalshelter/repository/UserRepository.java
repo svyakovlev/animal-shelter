@@ -21,6 +21,8 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     List<User> findUsersByVolunteerActiveIsTrue();
 
+    List<User> findUsersByVolunteerIsTrue();
+
     Optional<User> findFirstByAdministratorIsTrueAndChatIdGreaterThan(long zero);
 
     @Query(value = "select count(*) from client as c where c.chat_id = :chat and c.volunteer = true", nativeQuery = true)
