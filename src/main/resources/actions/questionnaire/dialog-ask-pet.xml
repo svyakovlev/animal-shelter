@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<Questionnaire name="ask_pet" interval="2">
+    <Question label="nickname">
+        <Content>Укажите кличку</Content>
+        <Check>^([А-Яа-я ]{3,})$</Check>
+        <Hint>Использовать можно только русские буквы и пробел</Hint>
+    </Question>
+    <Question label="breed">
+        <Content>Укажите породу</Content>
+        <Check>^([А-Яа-я ]{3,})$</Check>
+        <Hint>Использовать можно только русские буквы и пробел</Hint>
+    </Question>
+    <Question label="character">
+        <Content>Опишите характер питомца</Content>
+        <Check>.{5,300}</Check>
+        <Hint>Количество символов должно быть от 5 до 300</Hint>
+    </Question>
+    <Question label="birthday">
+        <Content>Укажите дату рождения в формате дд/MM/гггг (либо дефис '-')</Content>
+        <Check>((([0-2][\d])|(3[0-1]))\/([0][\d]|1[0-2])\/(19|20)\d\d)|^-$</Check>
+        <Hint>Дата вводится в формате дд/MM/гггг. Либо указать дефис '-' (без кавычек).</Hint>
+    </Question>
+</Questionnaire>

@@ -33,7 +33,7 @@ public class ProbationJournal {
     @Column(name = "report_received")
     private boolean reportReceived;
 
-    @OneToMany(mappedBy = "probationJournal")
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "probationJournal", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ProbationData> probationDataSet;
 
     public ProbationJournal() {}

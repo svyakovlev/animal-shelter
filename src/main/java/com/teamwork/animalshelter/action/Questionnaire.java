@@ -220,7 +220,7 @@ public class Questionnaire implements Askable{
         setError("");
         setWaitingResponse(false);
         listIterator = questions.listIterator(0);
-        currentQuestion = questions.get(0);
+        currentQuestion = listIterator.next();
 
         for (Map.Entry<String, String> entry : answers.entrySet()) {
             entry.setValue("");
@@ -230,13 +230,14 @@ public class Questionnaire implements Askable{
     @Override
     public boolean empty() {
         String currentLabel = currentQuestion.getLabel();
-        if (answers.get(currentLabel).isBlank()) return false;
+        if (!answers.containsKey(currentLabel) || answers.get(currentLabel).isBlank()) return false;
         if (listIterator.hasNext()) return false;
         return true;
     }
 
     @Override
-    public String nextAction() {
+    public Object nextAction() {
+        if (empty()) return null;
         return currentQuestion.getQuestion();
     }
 
@@ -255,7 +256,7 @@ public class Questionnaire implements Askable{
         if (response.matches(checkValue)) return true;
         StringBuilder err = new StringBuilder("Ответ имеет неверный формат.");
         if (hints.containsKey(currentLabel)) {
-            err.append(" Подсказка: ");
+            err.append("\nПодсказка: ");
             err.append(hints.get(currentLabel));
         }
         setError(err.toString());

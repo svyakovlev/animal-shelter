@@ -1,6 +1,7 @@
 package com.teamwork.animalshelter.service;
 
 import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup;
 import com.pengrad.telegrambot.request.SendDocument;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.request.SendPhoto;
@@ -45,17 +46,20 @@ public class BotService {
     }
 
     private void verifyResponse(SendResponse response, long chatId) {
-        // в этом методе следует вызвать исключение в случае ошибки доставки
-        // и обдумать как это отразится на выполнении алгоритма
         if (response.isOk()) {
             logger.info("Message is sent into chat <{}> successfully", chatId);
         } else {
-            logger.error("Error: message is not sent into chat <{}> (command '/start')", chatId);
+            logger.error("Error: message is not sent into chat <{}>", chatId);
         }
     }
 
     private void sendTextInfo(Object object, long chatId) {
-        SendMessage sendMessage = new SendMessage(chatId, (String) object);
+        SendMessage sendMessage;
+        if (object.getClass() == InlineKeyboardMarkup.class) {
+            sendMessage = new SendMessage(chatId, "Меню").replyMarkup((InlineKeyboardMarkup) object);
+        } else {
+            sendMessage = new SendMessage(chatId, (String) object);
+        }
         SendResponse response = telegramBot.execute(sendMessage);
         verifyResponse(response, chatId);
     }
@@ -99,12 +103,14 @@ public class BotService {
      */
     private void doAction(Askable ask, long chatId, String s) {
         if (Thread.currentThread().isInterrupted()) return;
-        String action = ask.nextAction();
+        Object action = ask.nextAction();
         if (action == null) return;
         askableServiceObjects.addResponse(chatId, "");
         ask.setWaitingResponse(true);
-        String info = s.isEmpty() ? action : s + "\n" + action;
-        sendInfo(info, ProbationDataType.TEXT, chatId);
+        if (action.getClass() == String.class) {
+            action = s.isEmpty() ? (String) action : s + "\n\n" + action;
+        }
+        sendInfo(action, ProbationDataType.TEXT, chatId);
     }
 
     /**
@@ -145,7 +151,7 @@ public class BotService {
                         askableServiceObjects.removeResponse(chatId);
                         return resultInterrupted;
                     }
-                    Thread.sleep(2_000);
+                    Thread.sleep(1_000);
                 } else {
                     ask.setWaitingResponse(false);
                     askableServiceObjects.removeResponse(chatId);
@@ -155,14 +161,12 @@ public class BotService {
                         return resultInterrupted;
                     }
                     if (ask.verificationRequired() && !ask.checkResponse(response)) {
-                        s = "В вашем ответе была допущена ошибка: " + ask.getLastError() + "\n Введите ваш ответ еще раз (для выхода из команды отправьте '0')";
-                        sendInfo(s, ProbationDataType.TEXT, chatId);
+                        s = "В вашем ответе была допущена ошибка: \n" + ask.getLastError() + "\n Введите ваш ответ еще раз (для выхода из команды отправьте '0')";
                     } else {
                         ask.setResponse(response);
                     }
                 }
             }
-            //s = "(для выхода из команды отправьте '0')";
             doAction(ask, chatId, s);
             startTime = LocalDateTime.now();
         }
@@ -232,7 +236,7 @@ public class BotService {
      *     <li>было отправлено только что-то одно: форма отчета или фотографии</li>
      * </ul>
      */
-    @Scheduled(cron = "* * 9-20/2 * * *")
+    @Scheduled(cron = "0 0 9-20/2 * * *")
     public void remindAboutReport() {
         List<ProbationJournal> records = probationJournalRepository.getJournalRecordsOnIncompleteReport();
         if (records == null) return;
@@ -257,7 +261,7 @@ public class BotService {
     /**
      * Отправляет сообщение пользователю, котоое было подготовлено сотрудником.
      */
-    @Scheduled(cron = "0 0 0/1 * * *")
+    @Scheduled(cron = "0 0 9-20/1 * * *")
     public void sendMessageOnProbation() {
         List<Probation> probations = probationRepository.getActiveProbationsWithMessages();
         if (probations == null) return;

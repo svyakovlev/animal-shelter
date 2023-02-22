@@ -1,5 +1,7 @@
 package com.teamwork.animalshelter.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -25,19 +27,19 @@ public class Support {
 
     @ManyToOne()
     @JoinColumn(name = "client_id_client")
+    @JsonIgnore
     private User user;
 
     @ManyToOne()
     @JoinColumn(name = "client_id_volunteer")
+    @JsonIgnore
     private User volunteer;
 
     public Support() {}
 
-    public Support(SupportType type, LocalDateTime beginDateTime, LocalDateTime finishDateTime, boolean finish, User user, User volunteer) {
+    public Support(SupportType type, LocalDateTime beginDateTime, User user, User volunteer) {
         this.type = type;
         this.beginDateTime = beginDateTime;
-        this.finishDateTime = finishDateTime;
-        this.finish = finish;
         this.user = user;
         this.volunteer = volunteer;
     }

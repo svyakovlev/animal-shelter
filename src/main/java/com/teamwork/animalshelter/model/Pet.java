@@ -30,7 +30,7 @@ public class Pet {
     @Column(name = "looking_for_owner")
     private Boolean lookingForOwner;
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "pet")
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "pet", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<PhotoPets> photoPets;
 
     public Pet() {}
@@ -103,7 +103,7 @@ public class Pet {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Pet pet)) return false;
-        return Objects.equals(getId(), pet.getId()) && Objects.equals(getNickname(), pet.getNickname()) && Objects.equals(getBreed(), pet.getBreed()) && Objects.equals(getBirthday(), pet.getBirthday()) && Objects.equals(getCharacter(), pet.getCharacter()) && Objects.equals(getLookingForOwner(), pet.getLookingForOwner());
+        return Objects.equals(getNickname(), pet.getNickname()) && Objects.equals(getBreed(), pet.getBreed()) && Objects.equals(getBirthday(), pet.getBirthday()) && Objects.equals(getCharacter(), pet.getCharacter()) && Objects.equals(getLookingForOwner(), pet.getLookingForOwner());
     }
 
     @Override
