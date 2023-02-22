@@ -1,5 +1,7 @@
 package com.teamwork.animalshelter.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -36,6 +38,7 @@ public class Probation {
 
     @ManyToOne()
     @JoinColumn(name = "client_id")
+    @JsonIgnore
     private User user;
 
     @OneToOne()
