@@ -3,10 +3,7 @@ package com.teamwork.animalshelter.service;
 import com.pengrad.telegrambot.TelegramBot;
 import com.teamwork.animalshelter.action.AskableServiceObjects;
 import com.teamwork.animalshelter.configuration.AnimalShetlerProperties;
-import com.teamwork.animalshelter.model.Contact;
-import com.teamwork.animalshelter.model.Pet;
-import com.teamwork.animalshelter.model.ProbationDataType;
-import com.teamwork.animalshelter.model.User;
+import com.teamwork.animalshelter.model.*;
 import com.teamwork.animalshelter.repository.*;
 import com.teamwork.animalshelter.service.AnimalShetlerInfoService;
 import com.teamwork.animalshelter.service.BotService;
@@ -36,7 +33,6 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class UserServiceTest {
-    //Logger logger = LoggerFactory.getLogger(UserServiceTest.class);
     @Autowired
     private UserRepository userRepository;
 
@@ -54,7 +50,7 @@ public class UserServiceTest {
     @MockBean
     private ContactRepository contactRepository;
 
-    @MockBean
+    @Autowired
     private ProbationRepository probationRepository;
 
     @MockBean
@@ -97,6 +93,7 @@ public class UserServiceTest {
 
     @BeforeEach
     public void initTest() {
+        probationRepository.deleteAllInBatch();
         userRepository.deleteAllInBatch();
         petRepository.deleteAllInBatch();
     }
@@ -143,5 +140,45 @@ public class UserServiceTest {
         Assertions.assertThat(pets.size()).isEqualTo(1);
         Pet actual = pets.get(0);
         Assertions.assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void prolongationByVolunteer() throws InterruptedException {
+        doNothing().when(botService).sendInfo(any(Object.class), any(ProbationDataType.class), anyLong());
+
+        LocalDateTime finish = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        LocalDateTime begin = finish.minusDays(20);
+
+        User user = new User("Bob", false, false, false, 10, null, "");
+        Set<Contact> contacts = new HashSet<>();
+        user.setContacts(contacts);
+        user = userRepository.save(user);
+
+        Pet pet = new Pet("Dick", "Spaniel", null, "Good", true);
+        Set<PhotoPets> photos = new HashSet<>();
+        pet.setPhotoPets(photos);
+        pet = petRepository.save(pet);
+
+        Probation probation = new Probation(begin, finish, false, user, pet);
+        probation = probationRepository.save(probation);
+
+        Map<String, String> response = Map.of("interrupt", "");
+        when(botService.startAction(anyString(), anyLong())).thenReturn(response);
+
+        userService.prolongationByVolunteer(15);
+        List<Probation> probations = probationRepository.findAll();
+        Assertions.assertThat(probations.size()).isEqualTo(1);
+        Assertions.assertThat(probations.get(0).getDateFinish()).isEqualTo(finish);
+
+        Map<String, String> response2 = Map.of("client-id", String.valueOf(user.getId()),
+                "pet-id", String.valueOf(pet.getId()),
+                "number", "5",
+                "message", "Reason");
+
+        when(botService.startAction(anyString(), anyLong())).thenReturn(response2);
+        userService.prolongationByVolunteer(15);
+        probations = probationRepository.findAll();
+        Assertions.assertThat(probations.size()).isEqualTo(1);
+        Assertions.assertThat(probations.get(0).getDateFinish()).isEqualTo(finish.plusDays(5));
     }
 }
